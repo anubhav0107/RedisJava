@@ -26,9 +26,10 @@ public class ClientHandler implements Runnable {
             in = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream()));
             out = new PrintWriter(this.clientSocket.getOutputStream(), true);
             RespParser rp = new RespParser(in);
-            while(this.clientSocket.isConnected()) {
+            while (!this.clientSocket.isClosed()) {
                 Object object = rp.parse();
-                out.write(handleParsedRESPObject(object));
+                String output = handleParsedRESPObject(object);
+                out.write(output);
                 out.flush();
             }
         } catch (IOException e) {

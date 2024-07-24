@@ -27,6 +27,7 @@ public class RespParser {
             case '*':
                 return parseArray();
             default:
+                in.readLine();
                 List<Object> list = new ArrayList<>();
                 list.add("PING");
                 return list;
