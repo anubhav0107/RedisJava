@@ -26,8 +26,6 @@ public class Main {
                 ClientHandler clientHandler = new ClientHandler(clientSocket);
                 executorService.execute(clientHandler);
             }
-
-
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
         } finally {
