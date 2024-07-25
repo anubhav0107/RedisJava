@@ -1,3 +1,5 @@
+import config.RDBConfig;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -9,7 +11,7 @@ public class Main {
     public static void main(String[] args) {
         // You can use print statements as follows for debugging, they'll be visible when running tests.
         System.out.println("Logs from your program will appear here!");
-
+        RDBConfig.initializeInstance(args);
         //  Uncomment this block to pass the first stage
         ServerSocket serverSocket = null;
         Socket clientSocket = null;

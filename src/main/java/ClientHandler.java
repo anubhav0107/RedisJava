@@ -1,3 +1,4 @@
+import config.RDBConfig;
 import redisdatastructures.RedisMap;
 import resp.RespConvertor;
 import resp.RespParser;
@@ -50,9 +51,29 @@ public class ClientHandler implements Runnable {
                     return handleSet(list);
                 case "GET":
                     return handleGet(list);
+                case "CONFIG":
+                    return handleConfig(list);
                 default:
                     return "+PONG\r\n";
             }
+        }
+        return null;
+    }
+
+    private String handleConfig(List<Object> list) {
+        try{
+            if(RDBConfig.isRDBEnabled) {
+                String configParam = (String) list.get(2);
+                List<String> input;
+                if (configParam.equalsIgnoreCase("dir")) {
+                    input = List.of(configParam, RDBConfig.getInstance().getDir());
+                } else {
+                    input = List.of(configParam, RDBConfig.getInstance().getDbFileName());
+                }
+                return RespConvertor.toRESPArray(input);
+            }
+        }catch (Exception e){
+            System.out.println(e.getMessage());
         }
         return null;
     }
