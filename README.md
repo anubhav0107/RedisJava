@@ -1,35 +1,35 @@
-[![progress-banner](https://backend.codecrafters.io/progress/redis/922c9cbc-3e86-468b-b447-41f0f4388bbf)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
+# RedisJava: A Redis Clone
 
-This is a starting point for Java solutions to the
-["Build Your Own Redis" Challenge](https://codecrafters.io/challenges/redis).
+Welcome to my Redis clone project!
 
-In this challenge, you'll build a toy Redis clone that's capable of handling
-basic commands like `PING`, `SET` and `GET`. Along the way we'll learn about
-event loops, the Redis protocol and more.
+This project is part of the **Build Your Own Redis** challenge. Redis is an in-memory data structure store often used as a database, cache, message broker, and streaming engine. In this project, I am building a Redis server capable of handling basic commands, reading RDB files, and more. This Redis clone can be used for in-memory caching and other purposes where high-speed data access is required.
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+## Table of Contents
 
-# Passing the first stage
+- [Introduction](#introduction)
+- [Features](#features)
+- [Usage](#usage)
 
-The entry point for your Redis implementation is in `src/main/java/Main.java`.
-Study and uncomment the relevant code, and push your changes to pass the first
-stage:
+## Introduction
 
-```sh
-git add .
-git commit -m "pass 1st stage" # any msg
-git push origin master
-```
+Redis is renowned for its simplicity and performance. By building this Redis clone, I aim to understand the inner workings of Redis and the key concepts that contribute to its efficiency. This project covers:
 
-That's all!
+- TCP servers and client connections
+- The Redis Protocol (RESP) for client-server communication
+- Data persistence using RDB files
+- Implementation of basic Redis commands
 
-# Stage 2 & beyond
+## Features
 
-Note: This section is for stages 2 and beyond.
+- Support for basic Redis commands (GET, SET, DEL, etc.)
+- TCP server for handling client connections
+- RDB file reading for data persistence
+- Modular and extensible codebase
 
-1. Ensure you have `java (1.8)` installed locally
-1. Run `./your_program.sh` to run your Redis server, which is implemented in
-   `src/main/java/Main.java`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
+##Usage
+
+Once the server is running, you can connect to it using any Redis client (e.g., redis-cli). Here are some basic commands you can use:
+
+- SET key value: Store a key-value pair
+- GET key: Retrieve the value associated with a key
+- DEL key: Delete a key-value pair
