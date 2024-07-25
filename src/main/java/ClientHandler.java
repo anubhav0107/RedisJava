@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,7 +18,6 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
     }
-
 
     @Override
     public void run() {
