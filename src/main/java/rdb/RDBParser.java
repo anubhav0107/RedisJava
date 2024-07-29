@@ -40,11 +40,15 @@ public class RDBParser {
                 int keySize = parseSize(checkDBStartByte);
                 String key = new String(inStream.readNBytes(keySize));
 
+                String value = "";
                 int valSize = parseSize(inStream.readUnsignedByte());
-                String value = new String(inStream.readNBytes(valSize));
-
+                if(valSize == 0){
+                    value = String.valueOf(inStream.readUnsignedByte());
+                }else {
+                    value = new String(inStream.readNBytes(valSize));
+                }
                 metaData.put(key, value);
-            }else{
+            } else {
                 break;
             }
         }
@@ -53,13 +57,19 @@ public class RDBParser {
 
     private static void parseDB() throws IOException {
         int dbIndex = parseSize(inStream.readUnsignedByte());
-        inStream.read();
-
-        int hashTableSize = parseSize(inStream.readUnsignedByte());
-        int expiresHashTableSize = parseSize(inStream.readUnsignedByte());
-
+        int type = inStream.readUnsignedByte();
+        boolean resizePresent = false;
+        if (type == 0xFB) {
+            int hashTableSize = parseSize(inStream.readUnsignedByte());
+            int expiresHashTableSize = parseSize(inStream.readUnsignedByte());
+            resizePresent = true;
+        }
         while (true) {
-            int type = inStream.readUnsignedByte();
+            if (!resizePresent) {
+                type = inStream.readUnsignedByte();
+            } else {
+                resizePresent = false;
+            }
             System.out.println("Type: " + type);
             if (type == 0xFF) {
                 break;
@@ -70,24 +80,30 @@ public class RDBParser {
                 canExpire = true;
                 if (type == 0xFC) {
                     expiry = readLitleEndianLong();
+                    System.out.println("expiry: " + expiry);
                 } else {
                     expiry = readLittleEndianInt();
                 }
                 type = inStream.readUnsignedByte();
             }
-            System.out.println("type: " + type);
+
             int keySize = parseSize(type);
             System.out.println("keySize: " + keySize);
+            if (keySize == 0) {
+                continue;
+            }
             String key = new String(inStream.readNBytes(keySize));
             System.out.println("key: " + key);
 
             int valSize = parseSize(inStream.readUnsignedByte());
-            System.out.println("valSize: " + valSize);
+
             String value = new String(inStream.readNBytes(valSize));
-            System.out.println("key: " + key);
-            if(!key.isEmpty()) {
+            System.out.println("value: " + value);
+            System.out.println("expiry: " + expiry);
+            if (!key.isEmpty()) {
                 RedisMap.setValue(key, new RedisMap.Value(value, canExpire, expiry));
             }
+
         }
     }
 
@@ -129,7 +145,6 @@ public class RDBParser {
             default:
                 throw new IOException("Bad Read");
         }
-        System.out.println("size: " + size);
         return size;
     }
 }
