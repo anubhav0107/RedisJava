@@ -84,6 +84,7 @@ public class RDBParser {
                 } else {
                     expiry = readLittleEndianInt();
                 }
+                inStream.readUnsignedByte();
                 type = inStream.readUnsignedByte();
             }
 
