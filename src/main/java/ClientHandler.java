@@ -99,9 +99,7 @@ public class ClientHandler implements Runnable {
     private String handleGet(List<Object> list) {
         try {
             String key = (String) list.get(1);
-            System.out.println("Key: " + key);
             RedisMap.Value value = RedisMap.getValue(key);
-            System.out.println("value: " + value);
             long now = (Timestamp.valueOf(LocalDateTime.now()).getTime());
             if (value == null || (value.canExpire() && now >= value.expiry())) {
                 return RespConvertor.toBulkString(null);
