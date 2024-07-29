@@ -78,13 +78,16 @@ public class RDBParser {
             System.out.println("type: " + type);
             int keySize = parseSize(type);
             System.out.println("keySize: " + keySize);
+            if(keySize == 0){
+                continue;
+            }
             String key = new String(inStream.readNBytes(keySize));
             System.out.println("key: " + key);
 
             int valSize = parseSize(inStream.readUnsignedByte());
             System.out.println("valSize: " + valSize);
             String value = new String(inStream.readNBytes(valSize));
-            System.out.println("key: " + key);
+            System.out.println("value: " + value);
             if(!key.isEmpty()) {
                 RedisMap.setValue(key, new RedisMap.Value(value, canExpire, expiry));
             }
@@ -129,7 +132,6 @@ public class RDBParser {
             default:
                 throw new IOException("Bad Read");
         }
-        System.out.println("size: " + size);
         return size;
     }
 }
