@@ -1,4 +1,4 @@
-package respparsertest;
+package test.respparsertest;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

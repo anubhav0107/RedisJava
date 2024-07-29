@@ -1,5 +1,7 @@
 package config;
 
+import rdb.RDBParser;
+
 public class RDBConfig {
     public static RDBConfig INSTANCE;
     private static String dir;
@@ -23,6 +25,9 @@ public class RDBConfig {
             isRDBEnabled = false;
         }
         INSTANCE = new RDBConfig(dir, dbFileName);
+        if(isRDBEnabled) {
+            RDBParser.parseRDB();
+        }
     }
 
     public static RDBConfig getInstance() {

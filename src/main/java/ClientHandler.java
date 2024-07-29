@@ -1,4 +1,5 @@
 import config.RDBConfig;
+import rdb.RDBParser;
 import redisdatastructures.RedisMap;
 import resp.RespConvertor;
 import resp.RespParser;
@@ -10,6 +11,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ClientHandler implements Runnable {
@@ -29,7 +31,7 @@ public class ClientHandler implements Runnable {
             in = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream()));
             out = new PrintWriter(this.clientSocket.getOutputStream(), true);
             RespParser rp = new RespParser(in);
-            while (!this.clientSocket.isClosed()) {
+            while(!this.clientSocket.isClosed()) {
                 Object object = rp.parse();
                 String output = handleParsedRESPObject(object);
                 out.write(output);
@@ -53,6 +55,8 @@ public class ClientHandler implements Runnable {
                     return handleGet(list);
                 case "CONFIG":
                     return handleConfig(list);
+                case "KEYS":
+                    return handleKeys(list);
                 default:
                     return "+PONG\r\n";
             }
@@ -60,9 +64,23 @@ public class ClientHandler implements Runnable {
         return null;
     }
 
-    private String handleConfig(List<Object> list) {
+    private String handleKeys(List<Object> list) {
         try{
-            if(RDBConfig.isRDBEnabled) {
+            String pattern = (String) list.get(1);
+            String bulkArrayResponse = "";
+            if(pattern.equalsIgnoreCase("*")){
+                bulkArrayResponse = RespConvertor.toRESPArray(RedisMap.getKeys());
+            }
+            return bulkArrayResponse;
+        }catch(Exception e){
+            System.out.println(e.getMessage());
+        }
+        return null;
+    }
+
+    private String handleConfig(List<Object> list) {
+        try {
+            if (RDBConfig.isRDBEnabled) {
                 String configParam = (String) list.get(2);
                 List<String> input;
                 if (configParam.equalsIgnoreCase("dir")) {
@@ -72,22 +90,24 @@ public class ClientHandler implements Runnable {
                 }
                 return RespConvertor.toRESPArray(input);
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         return null;
     }
 
     private String handleGet(List<Object> list) {
-        try{
-            String key = (String)list.get(1);
+        try {
+            String key = (String) list.get(1);
+            System.out.println("Key: " + key);
             RedisMap.Value value = RedisMap.getValue(key);
+            System.out.println("value: " + value);
             long now = (Timestamp.valueOf(LocalDateTime.now()).getTime());
-            if(value == null || (value.canExpire() && (now - value.ts().getTime()) >= value.expiry())){
+            if (value == null || (value.canExpire() && now >= value.expiry())) {
                 return RespConvertor.toBulkString(null);
             }
             return RespConvertor.toBulkString(value.value());
-        }catch(Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         return null;
@@ -101,7 +121,7 @@ public class ClientHandler implements Runnable {
         return "";
     }
 
-    private String handleSet(List<Object> list) throws IllegalArgumentException{
+    private String handleSet(List<Object> list) throws IllegalArgumentException {
         try {
             if (list.size() > 2) {
                 String key = (String) list.get(1);
@@ -112,13 +132,13 @@ public class ClientHandler implements Runnable {
                     canExpire = true;
                     expiry = Long.parseLong((String) list.get(4));
                 }
-                RedisMap.Value value = new RedisMap.Value(val, Timestamp.valueOf(LocalDateTime.now()), canExpire, expiry);
+                RedisMap.Value value = new RedisMap.Value(val, canExpire, (Timestamp.valueOf(LocalDateTime.now()).getTime()) + expiry);
                 RedisMap.setValue(key, value);
                 return "+OK\r\n";
             } else {
                 throw new IllegalArgumentException();
             }
-        }catch(Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         return null;
