@@ -26,7 +26,7 @@ Redis is renowned for its simplicity and performance. By building this Redis clo
 - RDB file reading for data persistence
 - Modular and extensible codebase
 
-##Usage
+## Usage
 
 Once the server is running, you can connect to it using any Redis client (e.g., redis-cli). Here are some basic commands you can use:
 
