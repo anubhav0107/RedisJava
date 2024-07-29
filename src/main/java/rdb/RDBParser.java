@@ -34,16 +34,15 @@ public class RDBParser {
         Map<String, String> metaData = new HashMap<>();
         while (true) {
             int currByte = inStream.readUnsignedByte();
-            System.out.println("currByte: " + currByte + ", " + (currByte == 0xFA));
             if (currByte == 0xFA) {
                 int checkDBStartByte = inStream.readUnsignedByte();
-                System.out.println("checkDBStartByte: " + checkDBStartByte);
+
                 int keySize = parseSize(checkDBStartByte);
                 String key = new String(inStream.readNBytes(keySize));
-                System.out.println("key: " + key);
+
                 int valSize = parseSize(inStream.readUnsignedByte());
                 String value = new String(inStream.readNBytes(valSize));
-                System.out.println("value: " + value);
+
                 metaData.put(key, value);
             }else{
                 break;
@@ -61,6 +60,7 @@ public class RDBParser {
 
         while (true) {
             int type = inStream.readUnsignedByte();
+            System.out.println("Type: " + type);
             if (type == 0xFF) {
                 break;
             }
@@ -73,12 +73,18 @@ public class RDBParser {
                 } else {
                     expiry = readLittleEndianInt();
                 }
+                type = inStream.readUnsignedByte();
             }
+            System.out.println("type: " + type);
             int keySize = parseSize(type);
+            System.out.println("keySize: " + keySize);
             String key = new String(inStream.readNBytes(keySize));
+            System.out.println("key: " + key);
 
             int valSize = parseSize(inStream.readUnsignedByte());
+            System.out.println("valSize: " + valSize);
             String value = new String(inStream.readNBytes(valSize));
+            System.out.println("key: " + key);
             if(!key.isEmpty()) {
                 RedisMap.setValue(key, new RedisMap.Value(value, canExpire, expiry));
             }
@@ -106,17 +112,13 @@ public class RDBParser {
     private static int parseSize(int sizeEncodingByte) throws IOException {
         int encoding = sizeEncodingByte & 0xC0;
         int size = 0;
-        System.out.println("sizeEncodingByte: " + sizeEncodingByte);
-        System.out.println("encoding: " + encoding);
         switch (encoding) {
             case 0x00:
                 size = (sizeEncodingByte) & 0x3F;
                 break;
             case 0x40:
                 int nextByte = inStream.readUnsignedByte();
-                System.out.println("nextByte: " + nextByte);
                 int prevByte = ((sizeEncodingByte) & 0x3F);
-                System.out.println("prevByte: " + prevByte);
                 size = ((prevByte & 0xFF) << 8) | (nextByte & 0xFF);
                 break;
             case 0x80:
