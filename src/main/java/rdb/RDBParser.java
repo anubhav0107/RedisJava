@@ -16,9 +16,8 @@ public class RDBParser {
         try {
             inStream = new DataInputStream(new FileInputStream(RDBConfig.INSTANCE.getFullPath()));
             String header = parseHeader();
-            System.out.println("Header: " + header);
             Map<String, String> metaData = parseMetaData();
-            System.out.println("MetaData: " + metaData);
+
             parseDB();
         } catch (IOException e) {
             System.out.println(e.getMessage());
@@ -91,13 +90,11 @@ public class RDBParser {
                 continue;
             }
             String key = new String(inStream.readNBytes(keySize));
-            System.out.println("key: " + key);
+
 
             int valSize = parseSize(inStream.readUnsignedByte());
 
             String value = new String(inStream.readNBytes(valSize));
-            System.out.println("value: " + value);
-            System.out.println("expiry: " + expiry);
             if (!key.isEmpty()) {
                 RedisMap.setValue(key, new RedisMap.Value(value, canExpire, expiry));
             }

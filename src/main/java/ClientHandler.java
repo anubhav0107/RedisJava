@@ -57,9 +57,34 @@ public class ClientHandler implements Runnable {
                     return handleConfig(list);
                 case "KEYS":
                     return handleKeys(list);
+                case "INCR":
+                    return handleIncrement(list);
                 default:
                     return "+PONG\r\n";
             }
+        }
+        return null;
+    }
+
+    private String handleIncrement(List<Object> list) {
+        try{
+            String key = (String) list.get(1);
+            RedisMap.Value value = RedisMap.getValue(key);
+            int intVal = 0;
+            if(value != null){
+                String val = value.value();
+                try{
+                    intVal = Integer.parseInt(val);
+                }catch(Exception e){
+                    return RespConvertor.toErrorString("value is not an integer or out of range");
+                }
+            }
+            intVal++;
+            RedisMap.Value newValue = new RedisMap.Value(String.valueOf(intVal), value.canExpire(), value.expiry());
+            RedisMap.setValue(key, newValue);
+            return RespConvertor.toIntegerString(intVal);
+        }catch(Exception e){
+            System.out.println(e.getMessage());
         }
         return null;
     }
@@ -101,8 +126,6 @@ public class ClientHandler implements Runnable {
             String key = (String) list.get(1);
             RedisMap.Value value = RedisMap.getValue(key);
             long now = (Timestamp.valueOf(LocalDateTime.now()).getTime());
-            System.out.println("now: " + now);
-            System.out.println("value.expiry(): " + value.expiry());
             if (value == null || (value.canExpire() && now >= value.expiry())) {
                 return RespConvertor.toBulkString(null);
             }

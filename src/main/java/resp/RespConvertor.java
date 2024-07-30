@@ -18,4 +18,12 @@ public class RespConvertor {
         }
         return output.toString();
     }
+
+    public static String toIntegerString(int value){
+        return ":"+value+"\r\n";
+    }
+
+    public static String toErrorString(String error){
+        return "-ERR " + error + "\r\n";
+    }
 }
