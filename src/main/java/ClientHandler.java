@@ -70,9 +70,25 @@ public class ClientHandler implements Runnable {
                     return handleMulti(list);
                 case "EXEC":
                     return handleExec(list);
+                case "DISCARD":
+                    return handleDiscard(list);
                 default:
                     return "+PONG\r\n";
             }
+        }
+        return null;
+    }
+
+    private String handleDiscard(List<Object> list) {
+        try{
+            if(!this.isMulti){
+                return RespConvertor.toErrorString("DISCARD without MULTI");
+            }
+            this.isMulti = false;
+            this.multiQueue = null;
+            return "+OK\r\n";
+        }catch(Exception e){
+            System.out.println(e.getMessage());
         }
         return null;
     }
