@@ -84,7 +84,8 @@ public class ClientHandler implements Runnable {
             }
             this.isMulti = false;
             List<String> responseList = new ArrayList<>();
-            for(Object object : list){
+            while(!this.multiQueue.isEmpty()){
+                Object object = this.multiQueue.poll();
                 responseList.add(handleParsedRESPObject(object));
             }
             return RespConvertor.toRESPArray(responseList);
