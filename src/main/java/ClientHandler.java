@@ -11,15 +11,18 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class ClientHandler implements Runnable {
 
     Socket clientSocket;
+    boolean isMulti;
+
+    Queue<Object> multiQueue;
 
     public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
+        this.isMulti = false;
     }
 
     @Override
@@ -43,6 +46,10 @@ public class ClientHandler implements Runnable {
     }
 
     private String handleParsedRESPObject(Object object) {
+        if(this.isMulti){
+            this.multiQueue.offer(object);
+            return "+QUEUED\r\n";
+        }
         if (object instanceof List) {
             List<Object> list = (List<Object>) object;
             String command = (String) list.get(0);
@@ -59,9 +66,41 @@ public class ClientHandler implements Runnable {
                     return handleKeys(list);
                 case "INCR":
                     return handleIncrement(list);
+                case "MULTI":
+                    return handleMulti(list);
+                case "EXEC":
+                    return handleExec(list);
                 default:
                     return "+PONG\r\n";
             }
+        }
+        return null;
+    }
+
+    private String handleExec(List<Object> list) {
+        try{
+            if(!this.isMulti){
+                return RespConvertor.toErrorString("EXEC without MULTI");
+            }
+            this.isMulti = false;
+            List<String> responseList = new ArrayList<>();
+            for(Object object : list){
+                responseList.add(handleParsedRESPObject(object));
+            }
+            return RespConvertor.toRESPArray(responseList);
+        }catch(Exception e){
+            System.out.println(e.getMessage());
+        }
+        return null;
+    }
+
+    private String handleMulti(List<Object> list) {
+        try{
+            this.isMulti = true;
+            multiQueue = new ArrayDeque<>();
+            return "+OK\r\n";
+        }catch(Exception e){
+            System.out.println(e.getMessage());
         }
         return null;
     }
@@ -83,7 +122,6 @@ public class ClientHandler implements Runnable {
                     return RespConvertor.toErrorString("value is not an integer or out of range");
                 }
             }
-
             intVal++;
             RedisMap.Value newValue = new RedisMap.Value(String.valueOf(intVal), canExpire, expiry);
             RedisMap.setValue(key, newValue);
