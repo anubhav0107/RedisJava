@@ -35,22 +35,7 @@ public class RedisMap {
     public static List<String> getKeys(){
         return new ArrayList<>(RedisMap.redisMap.keySet());
     }
-    public static void saveToRDB(){
-        try {
-            String rdbFilePath = RDBConfig.getInstance().getFullPath();
-            File rdbFile = new File(rdbFilePath);
-            if(!rdbFile.exists()){
-                rdbFile.createNewFile();
-            }
-            FileOutputStream fos = new FileOutputStream(rdbFilePath);
-            DataOutputStream dos = new DataOutputStream(fos);
-
-            RDBCreator rdbCreator = new RDBCreator(dos, RedisMap.redisMap);
-            rdbCreator.writeRDB();
-
-            dos.close();
-        }catch(IOException e){
-            System.out.println(e.getMessage());
-        }
+    public static boolean containsKey(String key){
+        return RedisMap.redisMap.containsKey(key);
     }
 }

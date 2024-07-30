@@ -72,9 +72,24 @@ public class ClientHandler implements Runnable {
                     return handleExec(list);
                 case "DISCARD":
                     return handleDiscard(list);
+                case "TYPE":
+                    return handleType(list);
                 default:
                     return "+PONG\r\n";
             }
+        }
+        return null;
+    }
+
+    private String handleType(List<Object> list) {
+        try{
+            String key = (String)list.get(1);
+            if(RedisMap.containsKey(key)){
+                return "+string\r\n";
+            }
+            return "+none\r\n";
+        }catch(Exception e){
+            System.out.println(e.getMessage());
         }
         return null;
     }
