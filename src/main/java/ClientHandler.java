@@ -84,7 +84,8 @@ public class ClientHandler implements Runnable {
             }
             this.isMulti = false;
             List<String> responseList = new ArrayList<>();
-            for(Object object : list){
+            while(!this.multiQueue.isEmpty()){
+                Object object = this.multiQueue.poll();
                 responseList.add(handleParsedRESPObject(object));
             }
             return RespConvertor.toRESPArray(responseList);
@@ -122,7 +123,6 @@ public class ClientHandler implements Runnable {
                     return RespConvertor.toErrorString("value is not an integer or out of range");
                 }
             }
-
             intVal++;
             RedisMap.Value newValue = new RedisMap.Value(String.valueOf(intVal), canExpire, expiry);
             RedisMap.setValue(key, newValue);
