@@ -46,13 +46,13 @@ public class ClientHandler implements Runnable {
     }
 
     private String handleParsedRESPObject(Object object) {
-        if(this.isMulti){
-            this.multiQueue.offer(object);
-            return "+QUEUED\r\n";
-        }
         if (object instanceof List) {
             List<Object> list = (List<Object>) object;
             String command = (String) list.get(0);
+            if(this.isMulti && (!command.equalsIgnoreCase("EXEC") && !command.equalsIgnoreCase("DISCARD"))){
+                this.multiQueue.offer(object);
+                return "+QUEUED\r\n";
+            }
             switch (command.toUpperCase()) {
                 case "ECHO":
                     return handleEcho(list);
@@ -88,7 +88,7 @@ public class ClientHandler implements Runnable {
                 Object object = this.multiQueue.poll();
                 responseList.add(handleParsedRESPObject(object));
             }
-            return RespConvertor.toRESPArray(responseList);
+            return RespConvertor.toRESPArray(responseList, false);
         }catch(Exception e){
             System.out.println(e.getMessage());
         }
@@ -138,7 +138,7 @@ public class ClientHandler implements Runnable {
             String pattern = (String) list.get(1);
             String bulkArrayResponse = "";
             if(pattern.equalsIgnoreCase("*")){
-                bulkArrayResponse = RespConvertor.toRESPArray(RedisMap.getKeys());
+                bulkArrayResponse = RespConvertor.toRESPArray(RedisMap.getKeys(), true);
             }
             return bulkArrayResponse;
         }catch(Exception e){
@@ -157,7 +157,7 @@ public class ClientHandler implements Runnable {
                 } else {
                     input = List.of(configParam, RDBConfig.getInstance().getDbFileName());
                 }
-                return RespConvertor.toRESPArray(input);
+                return RespConvertor.toRESPArray(input, true);
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
