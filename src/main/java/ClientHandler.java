@@ -46,13 +46,13 @@ public class ClientHandler implements Runnable {
     }
 
     private String handleParsedRESPObject(Object object) {
-        if(this.isMulti){
-            this.multiQueue.offer(object);
-            return "+QUEUED\r\n";
-        }
         if (object instanceof List) {
             List<Object> list = (List<Object>) object;
             String command = (String) list.get(0);
+            if(this.isMulti && (!command.equalsIgnoreCase("EXEC") && !command.equalsIgnoreCase("DISCARD"))){
+                this.multiQueue.offer(object);
+                return "+QUEUED\r\n";
+            }
             switch (command.toUpperCase()) {
                 case "ECHO":
                     return handleEcho(list);
@@ -84,7 +84,8 @@ public class ClientHandler implements Runnable {
             }
             this.isMulti = false;
             List<String> responseList = new ArrayList<>();
-            for(Object object : list){
+            while(!this.multiQueue.isEmpty()){
+                Object object = this.multiQueue.poll();
                 responseList.add(handleParsedRESPObject(object));
             }
             return RespConvertor.toRESPArray(responseList);
