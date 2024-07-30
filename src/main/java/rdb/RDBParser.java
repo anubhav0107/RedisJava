@@ -69,6 +69,7 @@ public class RDBParser {
             } else {
                 resizePresent = false;
             }
+
             if (type == 0xFF) {
                 break;
             }
@@ -78,6 +79,7 @@ public class RDBParser {
                 canExpire = true;
                 if (type == 0xFC) {
                     expiry = readLitleEndianLong();
+                    System.out.println("expiry: " + expiry);
                 } else {
                     expiry = readLittleEndianInt();
                 }
@@ -86,6 +88,7 @@ public class RDBParser {
             }
 
             int keySize = parseSize(type);
+
             if (keySize == 0) {
                 continue;
             }
@@ -95,6 +98,7 @@ public class RDBParser {
             int valSize = parseSize(inStream.readUnsignedByte());
 
             String value = new String(inStream.readNBytes(valSize));
+
             if (!key.isEmpty()) {
                 RedisMap.setValue(key, new RedisMap.Value(value, canExpire, expiry));
             }
