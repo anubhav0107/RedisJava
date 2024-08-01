@@ -1,8 +1,9 @@
 import config.RDBConfig;
-import rdb.RDBParser;
+import redisdatastructures.RedisKeys;
 import redisdatastructures.RedisMap;
 import resp.RespConvertor;
 import resp.RespParser;
+import stramhandlers.StreamHandler;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -74,6 +75,8 @@ public class ClientHandler implements Runnable {
                     return handleDiscard(list);
                 case "TYPE":
                     return handleType(list);
+                case "XADD":
+                    return StreamHandler.handleXAdd(list);
                 default:
                     return "+PONG\r\n";
             }
@@ -84,8 +87,8 @@ public class ClientHandler implements Runnable {
     private String handleType(List<Object> list) {
         try{
             String key = (String)list.get(1);
-            if(RedisMap.containsKey(key)){
-                return "+string\r\n";
+            if(RedisKeys.containsKey(key)){
+                return "+" + RedisKeys.get(key)+ "\r\n";
             }
             return "+none\r\n";
         }catch(Exception e){
@@ -232,6 +235,7 @@ public class ClientHandler implements Runnable {
                 }
                 RedisMap.Value value = new RedisMap.Value(val, canExpire, (Timestamp.valueOf(LocalDateTime.now()).getTime()) + expiry);
                 RedisMap.setValue(key, value);
+                RedisKeys.addKey(key, "string");
                 return "+OK\r\n";
             } else {
                 throw new IllegalArgumentException();
