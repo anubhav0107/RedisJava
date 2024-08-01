@@ -22,11 +22,12 @@ public class StreamHandler {
             String entryId = entryKey.split("-")[0];
             String entrySequence = entryKey.split("-")[1];
 
-            if (RedisStream.containsKey(streamKey) && !validateStream(RedisStream.getStream(streamKey), entryId, entrySequence)) {
-                return RespConvertor.toErrorString("The ID specified in XADD is equal or smaller than the target stream top item");
-            }
             if (!validateEntryKey(entryId, entrySequence)) {
                 return RespConvertor.toErrorString("The ID specified in XADD must be greater than 0-0");
+            }
+            
+            if (RedisStream.containsKey(streamKey) && !validateStream(RedisStream.getStream(streamKey), entryId, entrySequence)) {
+                return RespConvertor.toErrorString("The ID specified in XADD is equal or smaller than the target stream top item");
             }
 
             Stream stream = RedisStream.getStream(streamKey);
@@ -54,10 +55,23 @@ public class StreamHandler {
     }
 
     private static boolean validateStream(Stream stream, String entryId, String entrySequence) {
+        if(entryId.equals("*")){
+            return true;
+        }
+        Long lastEntries = stream.getLastId();
+        if(lastEntries > Long.parseLong(entryId)){
+            return false;
+        }else if(lastEntries == Long.parseLong(entryId) && stream.getEntries(lastEntries).getLastSequence() >=  Long.parseLong(entrySequence)){
+            return false;
+        }
+
         return true;
     }
 
     private static boolean validateEntryKey(String entryId, String entrySequence) {
+        if(entryId.equals("0") && entrySequence.equals("0")){
+            return false;
+        }
         return true;
     }
 
