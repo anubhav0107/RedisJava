@@ -1,8 +1,9 @@
 import config.RDBConfig;
-import rdb.RDBParser;
+import redisdatastructures.RedisKeys;
 import redisdatastructures.RedisMap;
 import resp.RespConvertor;
 import resp.RespParser;
+import stramhandlers.StreamHandler;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -70,9 +71,42 @@ public class ClientHandler implements Runnable {
                     return handleMulti(list);
                 case "EXEC":
                     return handleExec(list);
+                case "DISCARD":
+                    return handleDiscard(list);
+                case "TYPE":
+                    return handleType(list);
+                case "XADD":
+                    return StreamHandler.handleXAdd(list);
                 default:
                     return "+PONG\r\n";
             }
+        }
+        return null;
+    }
+
+    private String handleType(List<Object> list) {
+        try{
+            String key = (String)list.get(1);
+            if(RedisKeys.containsKey(key)){
+                return "+" + RedisKeys.get(key)+ "\r\n";
+            }
+            return "+none\r\n";
+        }catch(Exception e){
+            System.out.println(e.getMessage());
+        }
+        return null;
+    }
+
+    private String handleDiscard(List<Object> list) {
+        try{
+            if(!this.isMulti){
+                return RespConvertor.toErrorString("DISCARD without MULTI");
+            }
+            this.isMulti = false;
+            this.multiQueue = null;
+            return "+OK\r\n";
+        }catch(Exception e){
+            System.out.println(e.getMessage());
         }
         return null;
     }
@@ -203,6 +237,7 @@ public class ClientHandler implements Runnable {
                 }
                 RedisMap.Value value = new RedisMap.Value(val, canExpire, (Timestamp.valueOf(LocalDateTime.now()).getTime()) + expiry);
                 RedisMap.setValue(key, value);
+                RedisKeys.addKey(key, "string");
                 return "+OK\r\n";
             } else {
                 throw new IllegalArgumentException();
