@@ -14,6 +14,7 @@ public class StreamHandler {
 
     public static String handleXAdd(List<Object> list) {
         try {
+
             String streamKey = (String) list.get(1);
             String entryKey = (String) list.get(2);
             if(entryKey == "*"){
@@ -37,8 +38,8 @@ public class StreamHandler {
             }else{
                 entries = stream.getEntries(Long.parseLong(entryId));
             }
-
             Map<String, String> entry = prepareMap(list.subList(3, list.size()));
+
             long newSequence = 0;
             if(entrySequence.equals("*")){
                 newSequence = entries.addEntry(entry, Long.parseLong(entryId));
@@ -55,7 +56,7 @@ public class StreamHandler {
     }
 
     private static boolean validateStream(Stream stream, String entryId, String entrySequence) {
-        if(entryId.equals("*")){
+        if(entryId.equals("*") || entrySequence.equals("*")){
             return true;
         }
         Long lastEntries = stream.getLastId();
@@ -64,7 +65,6 @@ public class StreamHandler {
         }else if(lastEntries == Long.parseLong(entryId) && stream.getEntries(lastEntries).getLastSequence() >=  Long.parseLong(entrySequence)){
             return false;
         }
-
         return true;
     }
 
