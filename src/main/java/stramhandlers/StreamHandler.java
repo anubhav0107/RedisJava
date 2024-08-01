@@ -25,7 +25,7 @@ public class StreamHandler {
             if (!validateEntryKey(entryId, entrySequence)) {
                 return RespConvertor.toErrorString("The ID specified in XADD must be greater than 0-0");
             }
-            
+
             if (RedisStream.containsKey(streamKey) && !validateStream(RedisStream.getStream(streamKey), entryId, entrySequence)) {
                 return RespConvertor.toErrorString("The ID specified in XADD is equal or smaller than the target stream top item");
             }
@@ -41,7 +41,7 @@ public class StreamHandler {
             Map<String, String> entry = prepareMap(list.subList(3, list.size()));
             long newSequence = 0;
             if(entrySequence.equals("*")){
-                newSequence = entries.addEntry(entry);
+                newSequence = entries.addEntry(entry, Long.parseLong(entryId));
             }else{
                 newSequence = entries.addEntry(Long.parseLong(entrySequence), entry);
             }

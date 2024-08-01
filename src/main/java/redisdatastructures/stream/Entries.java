@@ -15,7 +15,7 @@ public class Entries {
         try {
             return entries.lastKey();
         }catch (NoSuchElementException e){
-            return 0L;
+            return -1L;
         }
     }
 
@@ -23,12 +23,17 @@ public class Entries {
         try {
             return entries.firstKey();
         }catch (NoSuchElementException e){
-            return 0L;
+            return -1L;
         }
     }
 
-    public long addEntry(Map<String, String> entry){
-        long newSequence = getLastSequence() + 1;
+    public long addEntry(Map<String, String> entry, Long entryId){
+        long newSequence;
+        if(entryId == 0 && getLastSequence() == -1){
+            newSequence = 1;
+        }else {
+            newSequence = getLastSequence() + 1;
+        }
         entries.put(newSequence, entry);
         return newSequence;
     }
