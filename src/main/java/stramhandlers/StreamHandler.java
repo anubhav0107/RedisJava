@@ -97,26 +97,36 @@ public class StreamHandler {
     public static String handleXRange(List<Object> list) {
         try {
             String streamKey = (String) list.get(1);
-            String[] start = ((String) list.get(2)).split("-");
-            String[] end = ((String) list.get(3)).split("-");
-            long startId = Long.parseLong(start[0]);
-            long endId = Long.parseLong(end[0]);
-
             Stream stream = RedisStream.getStream(streamKey);
 
+            String start = (String) list.get(2);
+            if (start.equals("-")) {
+                start = String.valueOf(stream.getFirstId());
+            }
+            String end = (String) list.get(3);
+            if (end.equals("+")) {
+                end = String.valueOf(stream.getLastId());
+            }
+
+            String[] startArr = start.split("-");
+            String[] endArr = end.split("-");
+
+            long startId = Long.parseLong(startArr[0]);
+            long endId = Long.parseLong(endArr[0]);
+            
             ConcurrentSkipListMap<Long, Entries> streamRange = new ConcurrentSkipListMap<>();
 
             Entries startEntries = stream.getEntries(startId);
             long startSequence;
-            if (start.length == 2) {
-                startSequence = Long.parseLong(start[1]);
+            if (startArr.length == 2) {
+                startSequence = Long.parseLong(startArr[1]);
             } else {
                 startSequence = 0;
             }
             Entries endEntries = stream.getEntries(endId);
             long endSequence;
-            if (end.length == 2) {
-                endSequence = Long.parseLong(end[1]);
+            if (endArr.length == 2) {
+                endSequence = Long.parseLong(endArr[1]);
             } else {
                 endSequence = endEntries.getLastSequence();
             }
@@ -144,10 +154,10 @@ public class StreamHandler {
     private static String prepareXRangeResponse(ConcurrentSkipListMap<Long, Entries> streamRange) {
         List<String> responseList = new ArrayList<>();
 
-        for(Map.Entry<Long, Entries> entries : streamRange.entrySet()){
+        for (Map.Entry<Long, Entries> entries : streamRange.entrySet()) {
             Long entryId = entries.getKey();
             Entries entry = entries.getValue();
-            for(Map.Entry<Long, Map<String, String>> sequenceEntry : entry.entries.entrySet()){
+            for (Map.Entry<Long, Map<String, String>> sequenceEntry : entry.entries.entrySet()) {
                 String entryMapResponse = prepareEntryMapResponse(sequenceEntry.getValue());
                 String key = entryId + "-" + sequenceEntry.getKey();
                 responseList.add(RespConvertor.toRESPArray(List.of(RespConvertor.toBulkString(key), entryMapResponse), false));
@@ -156,10 +166,10 @@ public class StreamHandler {
         return RespConvertor.toRESPArray(responseList, false);
     }
 
-    private static String prepareEntryMapResponse(Map<String, String> entry){
+    private static String prepareEntryMapResponse(Map<String, String> entry) {
         List<String> entryMapResponseList = new ArrayList<>();
 
-        for(Map.Entry<String, String> en : entry.entrySet()){
+        for (Map.Entry<String, String> en : entry.entrySet()) {
             entryMapResponseList.add(en.getKey());
             entryMapResponseList.add(en.getValue());
         }
