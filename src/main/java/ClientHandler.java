@@ -40,10 +40,10 @@ public class ClientHandler implements Runnable {
             RespParser rp = new RespParser(in);
             while (!this.clientSocket.isClosed()) {
                 Object object = rp.parse();
-                String output = handleParsedRESPObject(object);
-                if(output == null){
+                if(object == null){
                     continue;
                 }
+                String output = handleParsedRESPObject(object);
                 out.write(output);
                 out.flush();
             }
@@ -90,6 +90,8 @@ public class ClientHandler implements Runnable {
                     return handleType(list);
                 case "XADD":
                     return StreamHandler.handleXAdd(list);
+                case "XRANGE":
+                    return StreamHandler.handleXRange(list);
                 default:
                     return "+PONG\r\n";
             }

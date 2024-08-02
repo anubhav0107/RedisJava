@@ -39,4 +39,16 @@ public class Stream {
     public boolean containsEntry(Long id, Long sequence){
         return stream.containsKey(id) && stream.get(id).containsSequence(sequence);
     }
+
+    public ConcurrentSkipListMap<Long, Entries> getRange(Long start, Long end){
+        return new ConcurrentSkipListMap<>(stream.subMap(start, end));
+    }
+
+    public Long getHigherId(Long start){
+        return stream.higherKey(start);
+    }
+
+    public Long getLowerId(Long end){
+        return stream.lowerKey(end);
+    }
 }

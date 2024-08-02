@@ -16,6 +16,8 @@ public class RespParser {
     public Object parse() throws IOException {
         int firstByte = in.read();
         switch (firstByte) {
+            case -1:
+                return null;
             case '+':
                 return parseSimpleString();
             case '-':

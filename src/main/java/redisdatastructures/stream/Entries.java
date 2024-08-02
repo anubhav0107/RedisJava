@@ -5,15 +5,19 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class Entries {
-    private static ConcurrentSkipListMap<Long, Map<String, String>> entries;
+    public ConcurrentSkipListMap<Long, Map<String, String>> entries;
 
     public Entries(){
-        entries = new ConcurrentSkipListMap<>();
+        this.entries = new ConcurrentSkipListMap<>();
+    }
+
+    public Entries(ConcurrentSkipListMap<Long, Map<String, String>> newEntries){
+        this.entries = newEntries;
     }
 
     public Long getLastSequence(){
         try {
-            return entries.lastKey();
+            return this.entries.lastKey();
         }catch (NoSuchElementException e){
             return -1L;
         }
@@ -21,7 +25,7 @@ public class Entries {
 
     public Long getFirstSequence(){
         try {
-            return entries.firstKey();
+            return this.entries.firstKey();
         }catch (NoSuchElementException e){
             return -1L;
         }
@@ -34,18 +38,28 @@ public class Entries {
         }else {
             newSequence = getLastSequence() + 1;
         }
-        entries.put(newSequence, entry);
+        this.entries.put(newSequence, entry);
         return newSequence;
     }
 
     public long addEntry(Long key, Map<String, String> entry){
-        entries.put(key, entry);
+        this.entries.put(key, entry);
         return key;
     }
 
     public boolean containsSequence(Long key){
-        return entries.containsKey(key);
+        return this.entries.containsKey(key);
     }
 
+    public Entries getRange(Long start, Long end){
+        return new Entries(new ConcurrentSkipListMap<>(this.entries.subMap(start, true, end, true)));
+    }
 
+    public Entries getTailRange(Long start){
+        return new Entries(new ConcurrentSkipListMap<>(this.entries.tailMap(start, true)));
+    }
+
+    public Entries getHeadRange(Long end){
+        return new Entries(new ConcurrentSkipListMap<>(this.entries.headMap(end, true)));
+    }
 }
