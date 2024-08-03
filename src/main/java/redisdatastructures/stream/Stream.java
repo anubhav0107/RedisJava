@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class Stream {
-    private static ConcurrentSkipListMap<Long, Entries> stream;
+    public ConcurrentSkipListMap<Long, Entries> stream;
 
     public Stream(){
         stream = new ConcurrentSkipListMap<>();

@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentMap;
 
 public class RedisStream {
 
-    private static ConcurrentMap<String, Stream> redisStream = new ConcurrentHashMap<>();
+    public static ConcurrentMap<String, Stream> redisStream = new ConcurrentHashMap<>();
 
     public static Stream getStream(String key){
         return redisStream.get(key);
