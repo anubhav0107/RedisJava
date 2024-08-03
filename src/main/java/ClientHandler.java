@@ -92,6 +92,8 @@ public class ClientHandler implements Runnable {
                     return StreamHandler.handleXAdd(list);
                 case "XRANGE":
                     return StreamHandler.handleXRange(list);
+                case "XREAD":
+                    return StreamHandler.handleXRead(list);
                 default:
                     return "+PONG\r\n";
             }

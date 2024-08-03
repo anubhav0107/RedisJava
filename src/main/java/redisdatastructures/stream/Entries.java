@@ -55,8 +55,8 @@ public class Entries {
         return new Entries(new ConcurrentSkipListMap<>(this.entries.subMap(start, true, end, true)));
     }
 
-    public Entries getTailRange(Long start){
-        return new Entries(new ConcurrentSkipListMap<>(this.entries.tailMap(start, true)));
+    public Entries getTailRange(Long start, boolean inclusive){
+        return new Entries(new ConcurrentSkipListMap<>(this.entries.tailMap(start, inclusive)));
     }
 
     public Entries getHeadRange(Long end){

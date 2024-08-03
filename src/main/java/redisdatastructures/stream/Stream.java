@@ -40,8 +40,12 @@ public class Stream {
         return stream.containsKey(id) && stream.get(id).containsSequence(sequence);
     }
 
-    public ConcurrentSkipListMap<Long, Entries> getRange(Long start, Long end){
-        return new ConcurrentSkipListMap<>(stream.subMap(start, end));
+    public ConcurrentSkipListMap<Long, Entries> getRange(Long start, boolean startInclusive, Long end, boolean endInclusive){
+        return new ConcurrentSkipListMap<>(stream.subMap(start, startInclusive, end, endInclusive));
+    }
+
+    public ConcurrentSkipListMap<Long, Entries> getRange(Long start, boolean startInclusive){
+        return new ConcurrentSkipListMap<>(stream.subMap(start, startInclusive, stream.lastKey(), true));
     }
 
     public Long getHigherId(Long start){

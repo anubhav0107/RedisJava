@@ -113,7 +113,7 @@ public class StreamHandler {
 
             long startId = Long.parseLong(startArr[0]);
             long endId = Long.parseLong(endArr[0]);
-            
+
             ConcurrentSkipListMap<Long, Entries> streamRange = new ConcurrentSkipListMap<>();
 
             Entries startEntries = stream.getEntries(startId);
@@ -136,11 +136,11 @@ public class StreamHandler {
             } else {
                 long higherIndexInStream = stream.getHigherId(startId);
                 long lowerIndexInStream = stream.getLowerId(endId);
-                if (lowerIndexInStream >= higherIndexInStream) {
-                    streamRange.putAll(stream.getRange(higherIndexInStream, lowerIndexInStream));
-                }
 
-                streamRange.put(startId, startEntries.getTailRange(startSequence));
+                streamRange.put(startId, startEntries.getTailRange(startSequence, true));
+                if (lowerIndexInStream >= higherIndexInStream) {
+                    streamRange.putAll(stream.getRange(startId, true, lowerIndexInStream, true));
+                }
                 streamRange.put(endId, endEntries.getHeadRange(endSequence));
             }
 
@@ -174,5 +174,55 @@ public class StreamHandler {
             entryMapResponseList.add(en.getValue());
         }
         return RespConvertor.toRESPArray(entryMapResponseList, true);
+    }
+
+    public static String handleXRead(List<Object> list) {
+        try {
+            int i = 0;
+            String command;
+            while (!(command = (String) list.get(i)).equalsIgnoreCase("streams")) {
+                i++;
+            }
+            Map<String, String> streamMap = getStreamMap(list, i + 1);
+
+            List<String> xReadResponseList = new ArrayList<>();
+
+            for(Map.Entry<String, String> entry : streamMap.entrySet()){
+                xReadResponseList.add(RespConvertor.toRESPArray(List.of(RespConvertor.toBulkString(entry.getKey()),
+                        getStreamReadResponse(entry.getKey(), entry.getValue())), false));
+            }
+
+            return RespConvertor.toRESPArray(xReadResponseList, false);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return null;
+    }
+
+    private static String getStreamReadResponse(String streamKey, String startEntriesKey) {
+        String[] startEntriesArr = startEntriesKey.split("-");
+        Stream stream = RedisStream.getStream(streamKey);
+        Entries startEntries = stream.getEntries(Long.parseLong(startEntriesArr[0]));
+
+        ConcurrentSkipListMap<Long, Entries> streamReadMap = new ConcurrentSkipListMap<>();
+        streamReadMap.put(Long.parseLong(startEntriesArr[0]), startEntries.getTailRange(Long.parseLong(startEntriesArr[1]), false));
+
+        streamReadMap.putAll(stream.getRange(Long.parseLong(startEntriesArr[0]), false));
+
+        return prepareXRangeResponse(streamReadMap);
+    }
+
+    private static Map<String, String> getStreamMap(List<Object> list, int startIndex) {
+        int keyStartIdx = startIndex;
+        int idStartIdx = (list.size() + startIndex)/2;
+        Map<String, String> streamMap = new LinkedHashMap<>();
+        for(int i = keyStartIdx, j = idStartIdx; j < list.size(); i++, j++){
+            String startEntries = (String) list.get(j);
+            if(!startEntries.contains("-")){
+                startEntries += "-0";
+            }
+            streamMap.put((String) list.get(i), startEntries);
+        }
+        return streamMap;
     }
 }
