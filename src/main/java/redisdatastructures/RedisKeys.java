@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RedisKeys {
-    private static Map<String, String> keys = new HashMap<>();
+    private static final Map<String, String> keys = new HashMap<>();
 
     public static void addKey(String key, String type){
         keys.put(key, type);

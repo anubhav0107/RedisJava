@@ -19,7 +19,7 @@ import java.util.Queue;
 
 public class ClientHandler implements Runnable {
 
-    Socket clientSocket;
+    final Socket clientSocket;
     boolean isMulti;
 
     Queue<Object> multiQueue;
@@ -44,8 +44,10 @@ public class ClientHandler implements Runnable {
                     continue;
                 }
                 String output = handleParsedRESPObject(object);
-                out.write(output);
-                out.flush();
+                if(output != null) {
+                    out.write(output);
+                    out.flush();
+                }
             }
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
