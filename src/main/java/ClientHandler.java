@@ -12,11 +12,14 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
 
 public class ClientHandler implements Runnable {
 
-    Socket clientSocket;
+    final Socket clientSocket;
     boolean isMulti;
 
     Queue<Object> multiQueue;
@@ -35,14 +38,26 @@ public class ClientHandler implements Runnable {
             in = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream()));
             out = new PrintWriter(this.clientSocket.getOutputStream(), true);
             RespParser rp = new RespParser(in);
-            while(!this.clientSocket.isClosed()) {
+            while (!this.clientSocket.isClosed()) {
                 Object object = rp.parse();
+                if(object == null){
+                    continue;
+                }
                 String output = handleParsedRESPObject(object);
-                out.write(output);
-                out.flush();
+                if(output != null) {
+                    out.write(output);
+                    out.flush();
+                }
             }
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
+        } finally {
+            try {
+                if (in != null) in.close();
+                if (out != null) out.close();
+            } catch (IOException e) {
+                System.out.println("IOException during cleanup: " + e.getMessage());
+            }
         }
     }
 
@@ -50,7 +65,7 @@ public class ClientHandler implements Runnable {
         if (object instanceof List) {
             List<Object> list = (List<Object>) object;
             String command = (String) list.get(0);
-            if(this.isMulti && (!command.equalsIgnoreCase("EXEC") && !command.equalsIgnoreCase("DISCARD"))){
+            if (this.isMulti && (!command.equalsIgnoreCase("EXEC") && !command.equalsIgnoreCase("DISCARD"))) {
                 this.multiQueue.offer(object);
                 return "+QUEUED\r\n";
             }
@@ -77,6 +92,10 @@ public class ClientHandler implements Runnable {
                     return handleType(list);
                 case "XADD":
                     return StreamHandler.handleXAdd(list);
+                case "XRANGE":
+                    return StreamHandler.handleXRange(list);
+                case "XREAD":
+                    return StreamHandler.handleXRead(list);
                 default:
                     return "+PONG\r\n";
             }
@@ -85,75 +104,75 @@ public class ClientHandler implements Runnable {
     }
 
     private String handleType(List<Object> list) {
-        try{
-            String key = (String)list.get(1);
-            if(RedisKeys.containsKey(key)){
-                return "+" + RedisKeys.get(key)+ "\r\n";
+        try {
+            String key = (String) list.get(1);
+            if (RedisKeys.containsKey(key)) {
+                return "+" + RedisKeys.get(key) + "\r\n";
             }
             return "+none\r\n";
-        }catch(Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         return null;
     }
 
     private String handleDiscard(List<Object> list) {
-        try{
-            if(!this.isMulti){
+        try {
+            if (!this.isMulti) {
                 return RespConvertor.toErrorString("DISCARD without MULTI");
             }
             this.isMulti = false;
             this.multiQueue = null;
             return "+OK\r\n";
-        }catch(Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         return null;
     }
 
     private String handleExec(List<Object> list) {
-        try{
-            if(!this.isMulti){
+        try {
+            if (!this.isMulti) {
                 return RespConvertor.toErrorString("EXEC without MULTI");
             }
             this.isMulti = false;
             List<String> responseList = new ArrayList<>();
-            while(!this.multiQueue.isEmpty()){
+            while (!this.multiQueue.isEmpty()) {
                 Object object = this.multiQueue.poll();
                 responseList.add(handleParsedRESPObject(object));
             }
             return RespConvertor.toRESPArray(responseList, false);
-        }catch(Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         return null;
     }
 
     private String handleMulti(List<Object> list) {
-        try{
+        try {
             this.isMulti = true;
             multiQueue = new ArrayDeque<>();
             return "+OK\r\n";
-        }catch(Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         return null;
     }
 
     private String handleIncrement(List<Object> list) {
-        try{
+        try {
             String key = (String) list.get(1);
             RedisMap.Value value = RedisMap.getValue(key);
             int intVal = 0;
             boolean canExpire = false;
             long expiry = 0;
-            if(value != null){
+            if (value != null) {
                 String val = value.value();
-                try{
+                try {
                     intVal = Integer.parseInt(val);
                     canExpire = value.canExpire();
                     expiry = value.expiry();
-                }catch(Exception e){
+                } catch (Exception e) {
                     return RespConvertor.toErrorString("value is not an integer or out of range");
                 }
             }
@@ -161,21 +180,21 @@ public class ClientHandler implements Runnable {
             RedisMap.Value newValue = new RedisMap.Value(String.valueOf(intVal), canExpire, expiry);
             RedisMap.setValue(key, newValue);
             return RespConvertor.toIntegerString(intVal);
-        }catch(Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         return null;
     }
 
     private String handleKeys(List<Object> list) {
-        try{
+        try {
             String pattern = (String) list.get(1);
             String bulkArrayResponse = "";
-            if(pattern.equalsIgnoreCase("*")){
+            if (pattern.equalsIgnoreCase("*")) {
                 bulkArrayResponse = RespConvertor.toRESPArray(RedisMap.getKeys(), true);
             }
             return bulkArrayResponse;
-        }catch(Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         return null;

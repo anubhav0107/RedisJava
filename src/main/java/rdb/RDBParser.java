@@ -25,8 +25,7 @@ public class RDBParser {
     }
 
     private static String parseHeader() throws IOException {
-        String header = new String(inStream.readNBytes(9));
-        return header;
+        return new String(inStream.readNBytes(9));
     }
 
     private static Map<String, String> parseMetaData() throws IOException {
@@ -78,8 +77,7 @@ public class RDBParser {
             if (type == 0xFC || type == 0xFD) {
                 canExpire = true;
                 if (type == 0xFC) {
-                    expiry = readLitleEndianLong();
-                    System.out.println("expiry: " + expiry);
+                    expiry = readLittleEndianLong();
                 } else {
                     expiry = readLittleEndianInt();
                 }
@@ -113,7 +111,7 @@ public class RDBParser {
                 ((long) inStream.readUnsignedByte() << 24));
     }
 
-    private static long readLitleEndianLong() throws IOException {
+    private static long readLittleEndianLong() throws IOException {
         return ((long) inStream.readUnsignedByte() |
                 ((long) inStream.readUnsignedByte() << 8) |
                 ((long) inStream.readUnsignedByte() << 16) |

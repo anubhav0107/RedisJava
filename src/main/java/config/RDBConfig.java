@@ -10,8 +10,8 @@ public class RDBConfig {
     public static boolean isRDBEnabled;
 
     private RDBConfig(String dir, String dbFileName) {
-        this.dir = dir;
-        this.dbFileName = dbFileName;
+        RDBConfig.dir = dir;
+        RDBConfig.dbFileName = dbFileName;
     }
 
     public static void initializeInstance(String[] args) {

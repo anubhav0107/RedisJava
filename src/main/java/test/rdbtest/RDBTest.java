@@ -30,12 +30,7 @@ public class RDBTest {
         rdbCreator.writeRDB();
     }
 
-    public static void testRDBParser() throws IOException{
-
-    }
-
     public static void main(String[] args) throws IOException{
         testCreation();
-        testRDBParser();
     }
 }

@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class Stream {
-    private static ConcurrentSkipListMap<Long, Entries> stream;
+    public ConcurrentSkipListMap<Long, Entries> stream;
 
     public Stream(){
         stream = new ConcurrentSkipListMap<>();
@@ -38,5 +38,21 @@ public class Stream {
 
     public boolean containsEntry(Long id, Long sequence){
         return stream.containsKey(id) && stream.get(id).containsSequence(sequence);
+    }
+
+    public ConcurrentSkipListMap<Long, Entries> getRange(Long start, boolean startInclusive, Long end, boolean endInclusive){
+        return new ConcurrentSkipListMap<>(stream.subMap(start, startInclusive, end, endInclusive));
+    }
+
+    public ConcurrentSkipListMap<Long, Entries> getRange(Long start, boolean startInclusive){
+        return new ConcurrentSkipListMap<>(stream.subMap(start, startInclusive, stream.lastKey(), true));
+    }
+
+    public Long getHigherId(Long start){
+        return stream.higherKey(start);
+    }
+
+    public Long getLowerId(Long end){
+        return stream.lowerKey(end);
     }
 }
