@@ -22,7 +22,7 @@ public class RespParserTest {
     }
 
     @Test
-    public static void testRespConvertor(){
+    public void testRespConvertor(){
         String input = "Hey";
         String output = RespConvertor.toBulkString(input);
 

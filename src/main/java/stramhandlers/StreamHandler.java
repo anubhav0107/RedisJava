@@ -10,6 +10,8 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class StreamHandler {
 
@@ -58,12 +60,23 @@ public class StreamHandler {
                 newSequence = entries.addEntry(Long.parseLong(entrySequence), entry);
             }
             RedisKeys.addKey(streamKey, "stream");
+
+            synchronized (StreamThreadHandler.streamLatches) {
+                List<CountDownLatch> latches = StreamThreadHandler.streamLatches.get(streamKey);
+                if (latches != null) {
+                    for (CountDownLatch latch : latches) {
+                        latch.countDown();
+                    }
+                    StreamThreadHandler.streamLatches.remove(streamKey);
+                }
+            }
+
             return RespConvertor.toBulkString(entryIdLong + "-" + newSequence);
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-        return null;
+        return RespConvertor.toBulkString(null);
     }
 
     private static boolean validateStream(Stream stream, String entryId, String entrySequence) {
@@ -73,17 +86,12 @@ public class StreamHandler {
         Long lastEntries = stream.getLastId();
         if (lastEntries > Long.parseLong(entryId)) {
             return false;
-        } else if (lastEntries == Long.parseLong(entryId) && stream.getEntries(lastEntries).getLastSequence() >= Long.parseLong(entrySequence)) {
-            return false;
-        }
-        return true;
+        } else
+            return lastEntries != Long.parseLong(entryId) || stream.getEntries(lastEntries).getLastSequence() < Long.parseLong(entrySequence);
     }
 
     private static boolean validateEntryKey(String entryId, String entrySequence) {
-        if (entryId.equals("0") && entrySequence.equals("0")) {
-            return false;
-        }
-        return true;
+        return !entryId.equals("0") || !entrySequence.equals("0");
     }
 
     private static Map<String, String> prepareMap(List<Object> list) {
@@ -148,7 +156,7 @@ public class StreamHandler {
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-        return null;
+        return RespConvertor.toBulkString(null);
     }
 
     private static String prepareXRangeResponse(ConcurrentSkipListMap<Long, Entries> streamRange) {
@@ -180,23 +188,46 @@ public class StreamHandler {
         try {
             int i = 0;
             String command;
-            while (!(command = (String) list.get(i)).equalsIgnoreCase("streams")) {
+            boolean blocking = false;
+            long blockTimeout = 0;
+            while (i < list.size() && !(command = (String) list.get(i)).equalsIgnoreCase("streams")) {
+                if (command.equalsIgnoreCase("block")) {
+                    blocking = true;
+                    blockTimeout = Long.parseLong((String) list.get(++i));
+                }
                 i++;
             }
-            Map<String, String> streamMap = getStreamMap(list, i + 1);
 
+
+            Map<String, String> streamMap = getStreamMap(list, i + 1);
             List<String> xReadResponseList = new ArrayList<>();
 
-            for(Map.Entry<String, String> entry : streamMap.entrySet()){
-                xReadResponseList.add(RespConvertor.toRESPArray(List.of(RespConvertor.toBulkString(entry.getKey()),
-                        getStreamReadResponse(entry.getKey(), entry.getValue())), false));
+            long startTime = System.currentTimeMillis();
+
+            CountDownLatch latch = new CountDownLatch(1);
+            for (String streamKey : streamMap.keySet()) {
+                StreamThreadHandler.registerStreamLatch(streamKey, latch);
             }
 
-            return RespConvertor.toRESPArray(xReadResponseList, false);
+            if (blocking && (System.currentTimeMillis() - startTime < blockTimeout)) {
+                // Wait for new data with timeout
+                latch.await(Math.max(1, blockTimeout - (System.currentTimeMillis() - startTime)), TimeUnit.MILLISECONDS);
+            }
+
+            for (Map.Entry<String, String> entry : streamMap.entrySet()) {
+                String response = getStreamReadResponse(entry.getKey(), entry.getValue());
+
+                if (response != null && !response.isEmpty() && response.charAt(1) != '0') {
+                    xReadResponseList.add(RespConvertor.toRESPArray(List.of(RespConvertor.toBulkString(entry.getKey()), response), false));
+                }
+            }
+            if (!xReadResponseList.isEmpty()) {
+                return RespConvertor.toRESPArray(xReadResponseList, false);
+            }
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-        return null;
+        return RespConvertor.toBulkString(null);
     }
 
     private static String getStreamReadResponse(String streamKey, String startEntriesKey) {
@@ -209,16 +240,16 @@ public class StreamHandler {
 
         streamReadMap.putAll(stream.getRange(Long.parseLong(startEntriesArr[0]), false));
 
-        return prepareXRangeResponse(streamReadMap);
+        return streamReadMap.size() > 0 ? prepareXRangeResponse(streamReadMap) : null;
     }
 
     private static Map<String, String> getStreamMap(List<Object> list, int startIndex) {
         int keyStartIdx = startIndex;
-        int idStartIdx = (list.size() + startIndex)/2;
+        int idStartIdx = (list.size() + startIndex) / 2;
         Map<String, String> streamMap = new LinkedHashMap<>();
-        for(int i = keyStartIdx, j = idStartIdx; j < list.size(); i++, j++){
+        for (int i = keyStartIdx, j = idStartIdx; j < list.size(); i++, j++) {
             String startEntries = (String) list.get(j);
-            if(!startEntries.contains("-")){
+            if (!startEntries.contains("-")) {
                 startEntries += "-0";
             }
             streamMap.put((String) list.get(i), startEntries);

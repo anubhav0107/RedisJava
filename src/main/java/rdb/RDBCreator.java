@@ -12,7 +12,7 @@ public class RDBCreator {
     static final String magicString = "REDIS";
     static final String version = "0007";
 
-    private DataOutputStream dos;
+    private final DataOutputStream dos;
     ConcurrentHashMap<String, RedisMap.Value> redisMap;
 
     public RDBCreator(DataOutputStream dos, ConcurrentHashMap<String, RedisMap.Value> redisMap) {
