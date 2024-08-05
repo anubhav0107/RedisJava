@@ -202,7 +202,6 @@ public class StreamHandler {
             Map<String, String> streamMap = getStreamMap(list, i + 1);
             List<String> xReadResponseList = new ArrayList<>();
 
-            boolean hasData = false;
             long startTime = System.currentTimeMillis();
 
             CountDownLatch latch = new CountDownLatch(1);
@@ -214,13 +213,12 @@ public class StreamHandler {
                 // Wait for new data with timeout
                 latch.await(Math.max(1, blockTimeout - (System.currentTimeMillis() - startTime)), TimeUnit.MILLISECONDS);
             }
-            
+
             for (Map.Entry<String, String> entry : streamMap.entrySet()) {
                 String response = getStreamReadResponse(entry.getKey(), entry.getValue());
 
                 if (response != null && !response.isEmpty() && response.charAt(1) != '0') {
                     xReadResponseList.add(RespConvertor.toRESPArray(List.of(RespConvertor.toBulkString(entry.getKey()), response), false));
-                    hasData = true;
                 }
             }
             if (!xReadResponseList.isEmpty()) {

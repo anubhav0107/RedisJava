@@ -223,6 +223,8 @@ public class ClientHandler implements Runnable {
             String key = (String) list.get(1);
             RedisMap.Value value = RedisMap.getValue(key);
             long now = (Timestamp.valueOf(LocalDateTime.now()).getTime());
+            System.out.println("now: " + now);
+            System.out.println("value.expiry(): " + value.expiry());
             if (value == null || (value.canExpire() && now >= value.expiry())) {
                 return RespConvertor.toBulkString(null);
             }

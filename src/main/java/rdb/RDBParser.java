@@ -68,6 +68,7 @@ public class RDBParser {
             } else {
                 resizePresent = false;
             }
+
             if (type == 0xFF) {
                 break;
             }
@@ -85,6 +86,7 @@ public class RDBParser {
             }
 
             int keySize = parseSize(type);
+
             if (keySize == 0) {
                 continue;
             }
@@ -94,6 +96,7 @@ public class RDBParser {
             int valSize = parseSize(inStream.readUnsignedByte());
 
             String value = new String(inStream.readNBytes(valSize));
+
             if (!key.isEmpty()) {
                 RedisMap.setValue(key, new RedisMap.Value(value, canExpire, expiry));
             }
