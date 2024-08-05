@@ -209,9 +209,13 @@ public class StreamHandler {
                 StreamThreadHandler.registerStreamLatch(streamKey, latch);
             }
 
-            if (blocking && (System.currentTimeMillis() - startTime < blockTimeout)) {
+            if (blocking) {
                 // Wait for new data with timeout
-                latch.await(Math.max(1, blockTimeout - (System.currentTimeMillis() - startTime)), TimeUnit.MILLISECONDS);
+                if(blockTimeout == 0){
+                    latch.await();
+                } else if (System.currentTimeMillis() - startTime < blockTimeout) {
+                    latch.await(Math.max(1, blockTimeout - (System.currentTimeMillis() - startTime)), TimeUnit.MILLISECONDS);
+                }
             }
 
             for (Map.Entry<String, String> entry : streamMap.entrySet()) {
