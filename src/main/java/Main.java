@@ -1,6 +1,6 @@
 import config.RDBConfig;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -11,11 +11,24 @@ public class Main {
     public static void main(String[] args) {
         // You can use print statements as follows for debugging, they'll be visible when running tests.
         System.out.println("Logs from your program will appear here!");
-        RDBConfig.initializeInstance(args);
+
         //  Uncomment this block to pass the first stage
+        String rdbDir = "";
+        String rdbFileName = "";
+        int port = 6379;
+        for (int i = 0, j = 1; j < args.length; i = i + 2, j = j + 2) {
+            if (args[i].equalsIgnoreCase("--dir")) {
+                rdbDir = args[j];
+            } else if (args[i].equalsIgnoreCase("--dbfilename")) {
+                rdbFileName = args[j];
+            } else if (args[i].equalsIgnoreCase("--port")) {
+                port = Integer.parseInt(args[j]);
+            }
+        }
+        RDBConfig.initializeInstance(rdbDir, rdbFileName);
         ServerSocket serverSocket = null;
         Socket clientSocket = null;
-        int port = 6379;
+
         try {
             ExecutorService executorService = Executors.newFixedThreadPool(10);
             serverSocket = new ServerSocket(port);
@@ -23,7 +36,7 @@ public class Main {
             // ensures that we don't run into 'Address already in use' errors
             serverSocket.setReuseAddress(true);
             // Wait for connection from client.
-            while(true){
+            while (true) {
                 clientSocket = serverSocket.accept();
                 ClientHandler clientHandler = new ClientHandler(clientSocket);
                 executorService.execute(clientHandler);
