@@ -31,6 +31,8 @@ public class Main {
                 ReplicationConfig.setMasterPort(masterServerDtls[1]);;
             }
         }
+        ReplicationConfig.initializeReplicationId();
+
         RDBConfig.initializeInstance(rdbDir, rdbFileName);
         ServerSocket serverSocket = null;
         Socket clientSocket = null;
