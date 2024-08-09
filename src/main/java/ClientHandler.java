@@ -99,6 +99,8 @@ public class ClientHandler implements Runnable {
                     return StreamHandler.handleXRead(list);
                 case "INFO":
                     return handleInfo(list);
+                case "REPLCONF":
+                    return handleReplConf(list);
                 default:
                     return "+PONG\r\n";
             }
@@ -106,13 +108,32 @@ public class ClientHandler implements Runnable {
         return null;
     }
 
+    private String handleReplConf(List<Object> list) {
+        try {
+            String command = (String) list.get(1);
+
+            if (command.equalsIgnoreCase("listening-port")) {
+                String slavePort = (String) list.get(2);
+                ReplicationConfig.addSlavePort(Integer.parseInt(slavePort));
+            } else if (command.equalsIgnoreCase("capa")) {
+                for(int i = 2; i < list.size(); i++){
+                    ReplicationConfig.addCapabilitiesToSlave((String) list.get(i));
+                }
+            }
+            return "+OK\r\n";
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return null;
+    }
+
     private String handleInfo(List<Object> list) {
         try {
             String command = (String) list.get(1);
-            if(command.equalsIgnoreCase("replication")){
+            if (command.equalsIgnoreCase("replication")) {
                 String role = ReplicationConfig.isSlave() ? "slave" : "master";
                 StringBuilder infoResponse = new StringBuilder("role:").append(role);
-                if(!ReplicationConfig.isSlave()){
+                if (!ReplicationConfig.isSlave()) {
                     infoResponse.append("\nmaster_replid:").append(ReplicationConfig.getMasterReplicationId())
                             .append("\nmaster_repl_offset:").append(ReplicationConfig.getMasterOffset());
                 }
