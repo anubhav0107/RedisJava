@@ -1,5 +1,6 @@
 import config.RDBConfig;
 import config.ReplicationConfig;
+import replication.Replication;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -24,14 +25,18 @@ public class Main {
                 rdbFileName = args[j];
             } else if (args[i].equalsIgnoreCase("--port")) {
                 port = Integer.parseInt(args[j]);
-            } else if (args[i].equalsIgnoreCase("--replicaof")){
+            } else if (args[i].equalsIgnoreCase("--replicaof")) {
                 ReplicationConfig.setIsSlave(true);
                 String[] masterServerDtls = args[j].split(" ");
-                ReplicationConfig.setMasterIP(masterServerDtls[0]);;
-                ReplicationConfig.setMasterPort(masterServerDtls[1]);;
+                ReplicationConfig.setMasterIP(masterServerDtls[0]);
+                ReplicationConfig.setMasterPort(masterServerDtls[1]);
             }
         }
         ReplicationConfig.initializeReplicationId();
+
+        if (ReplicationConfig.isSlave()) {
+            Replication.handshake();
+        }
 
         RDBConfig.initializeInstance(rdbDir, rdbFileName);
         ServerSocket serverSocket = null;
