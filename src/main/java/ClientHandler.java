@@ -112,6 +112,10 @@ public class ClientHandler implements Runnable {
             if(command.equalsIgnoreCase("replication")){
                 String role = ReplicationConfig.isSlave() ? "slave" : "master";
                 StringBuilder infoResponse = new StringBuilder("role:").append(role);
+                if(!ReplicationConfig.isSlave()){
+                    infoResponse.append("\nmaster_replid:").append(ReplicationConfig.getMasterReplicationId())
+                            .append("\nmaster_repl_offset:").append(ReplicationConfig.getMasterOffset());
+                }
                 return RespConvertor.toBulkString(infoResponse.toString());
             }
         } catch (Exception e) {
