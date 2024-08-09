@@ -35,7 +35,7 @@ public class Main {
         ReplicationConfig.initializeReplicationId();
 
         if (ReplicationConfig.isSlave()) {
-            Replication.handshake();
+            Replication.handshake(port);
         }
 
         RDBConfig.initializeInstance(rdbDir, rdbFileName);

@@ -6,11 +6,21 @@ import tcpclient.TCPClient;
 import java.util.List;
 
 public class Replication {
-    public static void handshake() {
+    public static void handshake(int port) {
         try {
-            String ping = RespConvertor.toRESPArray(List.of("PING"), true);
             TCPClient client = new TCPClient();
-            client.sendMessage(ping);
+            String ping = RespConvertor.toRESPArray(List.of("PING"), true);
+            String response = client.sendMessage(ping);
+            System.out.println(response);
+
+            String replConf1 = RespConvertor.toRESPArray(List.of("REPLCONF", "listening-port", String.valueOf(port)), true);
+            response = client.sendMessage(replConf1);
+            System.out.println(response);
+
+            String replConf2 = RespConvertor.toRESPArray(List.of("REPLCONF", "capa", "psync2"), true);
+            response = client.sendMessage(replConf2);
+            System.out.println(response);
+
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
