@@ -2,8 +2,6 @@ package replication;
 
 import config.ReplicationConfig;
 import resp.RespConvertor;
-import tcpclient.TCPClient;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -24,22 +22,22 @@ public class Replication {
                 out.flush();
                 // Read the server's response
                 String line = in.readLine();
-                System.out.println(line);
 
                 String replConf1 = RespConvertor.toRESPArray(List.of("REPLCONF", "listening-port", String.valueOf(port)), true);
                 out.print(replConf1);
                 out.flush();
-                // Read the server's response
                 line = in.readLine();
-                System.out.println(line);
 
                 String replConf2 = RespConvertor.toRESPArray(List.of("REPLCONF", "capa", "psync2"), true);
                 out.print(replConf2);
                 out.flush();
-                // Read the server's response
                 line = in.readLine();
-                System.out.println(line);
 
+                String pSync = RespConvertor.toRESPArray(List.of("PSYNC", "?", "-1"), true);
+                out.print(pSync);
+                out.flush();
+                line = in.readLine();
+                
             } catch (Exception e) {
                 System.out.println(e.getMessage());
             }
