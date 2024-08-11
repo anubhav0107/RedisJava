@@ -13,30 +13,33 @@ public class TCPClient {
 
     private int serverPort;
 
-    public TCPClient(){
+    public TCPClient() {
         this.serverIP = ReplicationConfig.getMasterIP();
         this.serverPort = Integer.parseInt(ReplicationConfig.getMasterPort());
     }
 
 
-    public String sendMessage(String message){
-        try (Socket socket = new Socket(this.serverIP, this.serverPort);
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))){
-
-            out.print(message);
-            out.flush();
+    public String sendMessage(String message) {
+        try (Socket socket = new Socket(this.serverIP, this.serverPort)) {
+            socket.setSoTimeout(500);
             StringBuilder response = new StringBuilder();
-            int c;
-            while((c = in.read()) != -1){
-                response.append((char)c);
+            try (PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                // Send the message to the server
+                out.print(message);
+                out.flush();
+                // Read the server's response
+                String line = in.readLine();
+                socket.close();
+                return line + "\n";
+
+            } catch (Exception e) {
+                return response.toString().trim();
             }
 
-            return response.toString();
-
-        }catch(Exception e){
-            System.out.println(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error: " + e.getMessage();
         }
-        return null;
     }
 }

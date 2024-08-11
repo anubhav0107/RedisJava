@@ -1,11 +1,22 @@
 package config;
 
-import java.util.Random;
+import java.util.*;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 public class ReplicationConfig {
     private static boolean isSlave;
     private static String masterIP;
     private static String masterPort;
+
+    private static ConcurrentSkipListMap<Integer, Set<String>> slavePorts = new ConcurrentSkipListMap<>();
+
+    public static void addCapabilitiesToSlave(String capability){
+        slavePorts.get(slavePorts.lastKey()).add(capability);
+    }
+
+    public static void addSlavePort(Integer port) {
+        ReplicationConfig.slavePorts.put(port, new HashSet<>());
+    }
 
     public static String getMasterReplicationId() {
         return masterReplicationId;
