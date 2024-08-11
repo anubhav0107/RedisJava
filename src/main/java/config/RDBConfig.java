@@ -4,28 +4,19 @@ import rdb.RDBParser;
 
 public class RDBConfig {
     public static RDBConfig INSTANCE;
+    public static boolean isRDBEnabled = false;
     private static String dir;
     private static String dbFileName;
-
-    public static boolean isRDBEnabled;
 
     private RDBConfig(String dir, String dbFileName) {
         RDBConfig.dir = dir;
         RDBConfig.dbFileName = dbFileName;
     }
 
-    public static void initializeInstance(String[] args) {
-        String dir = System.getProperty("user.dir"); // Default to current working directory
-        String dbFileName = "dump.rdb"; // Default filename
-        if(args.length >= 4){
-            dir = args[1];
-            dbFileName = args[3];
+    public static void initializeInstance(String rdbDir, String rdbFileName) {
+        if (!rdbDir.isEmpty() && !rdbFileName.isEmpty()) {
+            INSTANCE = new RDBConfig(rdbDir, rdbFileName);
             isRDBEnabled = true;
-        }else{
-            isRDBEnabled = false;
-        }
-        INSTANCE = new RDBConfig(dir, dbFileName);
-        if(isRDBEnabled) {
             RDBParser.parseRDB();
         }
     }

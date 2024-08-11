@@ -208,10 +208,13 @@ public class StreamHandler {
             for (String streamKey : streamMap.keySet()) {
                 StreamThreadHandler.registerStreamLatch(streamKey, latch);
             }
-
-            if (blocking && (System.currentTimeMillis() - startTime < blockTimeout)) {
+            if (blocking) {
                 // Wait for new data with timeout
-                latch.await(Math.max(1, blockTimeout - (System.currentTimeMillis() - startTime)), TimeUnit.MILLISECONDS);
+                if(blockTimeout == 0){
+                    latch.await();
+                } else if (System.currentTimeMillis() - startTime < blockTimeout) {
+                    latch.await(Math.max(1, blockTimeout - (System.currentTimeMillis() - startTime)), TimeUnit.MILLISECONDS);
+                }
             }
 
             for (Map.Entry<String, String> entry : streamMap.entrySet()) {
@@ -249,9 +252,16 @@ public class StreamHandler {
         Map<String, String> streamMap = new LinkedHashMap<>();
         for (int i = keyStartIdx, j = idStartIdx; j < list.size(); i++, j++) {
             String startEntries = (String) list.get(j);
-            if (!startEntries.contains("-")) {
-                startEntries += "-0";
-            }
+            String streamKey = (String) list.get(i);
+            if(startEntries.equalsIgnoreCase("$")){
+                Stream stream = RedisStream.getStream(streamKey);
+                long streamLastId = stream.getLastId();
+                long entryLastSequence = stream.getEntries(streamLastId).getLastSequence();
+                startEntries = streamLastId + "-" + entryLastSequence;
+            }else {
+                if (!startEntries.contains("-")) {
+                    startEntries += "-0";
+                }
             streamMap.put((String) list.get(i), startEntries);
         }
         return streamMap;
