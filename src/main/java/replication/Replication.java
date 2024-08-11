@@ -37,7 +37,7 @@ public class Replication {
                 out.print(pSync);
                 out.flush();
                 line = in.readLine();
-                
+
             } catch (Exception e) {
                 System.out.println(e.getMessage());
             }

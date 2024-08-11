@@ -101,9 +101,21 @@ public class ClientHandler implements Runnable {
                     return handleInfo(list);
                 case "REPLCONF":
                     return handleReplConf(list);
+                case "PSYNC":
+                    return pSyncHandler(list);
                 default:
                     return "+PONG\r\n";
             }
+        }
+        return null;
+    }
+
+    private String pSyncHandler(List<Object> list) {
+        try{
+            StringBuilder response = new StringBuilder("+FULLRESYNC ").append(ReplicationConfig.getMasterReplicationId()).append(" ").append(ReplicationConfig.getMasterOffset()).append("\r\n");
+            return response.toString();
+        }catch(Exception e){
+            System.out.println(e.getMessage());
         }
         return null;
     }
