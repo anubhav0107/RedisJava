@@ -1,137 +1,48 @@
+package handler;
+
 import config.RDBConfig;
 import config.ReplicationConfig;
 import redisdatastructures.RedisKeys;
 import redisdatastructures.RedisMap;
 import resp.RespConvertor;
-import resp.RespParser;
-import stramhandlers.StreamHandler;
 
-import javax.swing.text.StringContent;
-import java.io.*;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Base64;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-public class ClientHandler implements Runnable {
-
-    final Socket clientSocket;
-    boolean isMulti;
-
-    Queue<Object> multiQueue;
-
-    public ClientHandler(Socket clientSocket) {
-        this.clientSocket = clientSocket;
-        this.isMulti = false;
-    }
-
-    @Override
-    public void run() {
-        BufferedReader in = null;
-        PrintWriter out = null;
-        try {
-            System.out.println("Inside Handler\n");
-            in = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream()));
-            out = new PrintWriter(this.clientSocket.getOutputStream(), true);
-            RespParser rp = new RespParser(in);
-            while (!this.clientSocket.isClosed()) {
-                Object object = rp.parse();
-                if (object == null) {
-                    continue;
-                }
-                String output = handleParsedRESPObject(object, out);
-                if (output != null) {
-                    out.write(output);
-                    out.flush();
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("IOException: " + e.getMessage());
-        } finally {
-            try {
-                if (in != null) in.close();
-                if (out != null) out.close();
-            } catch (IOException e) {
-                System.out.println("IOException during cleanup: " + e.getMessage());
-            }
-        }
-    }
-
-    private String handleParsedRESPObject(Object object, PrintWriter out) {
-        if (object instanceof List) {
-            List<Object> list = (List<Object>) object;
-            String command = (String) list.get(0);
-            if (this.isMulti && (!command.equalsIgnoreCase("EXEC") && !command.equalsIgnoreCase("DISCARD"))) {
-                this.multiQueue.offer(object);
-                return "+QUEUED\r\n";
-            }
-            switch (command.toUpperCase()) {
-                case "ECHO":
-                    return handleEcho(list);
-                case "SET":
-                    return handleSet(list);
-                case "GET":
-                    return handleGet(list);
-                case "CONFIG":
-                    return handleConfig(list);
-                case "KEYS":
-                    return handleKeys(list);
-                case "INCR":
-                    return handleIncrement(list);
-                case "MULTI":
-                    return handleMulti(list);
-                case "EXEC":
-                    return handleExec(list, out);
-                case "DISCARD":
-                    return handleDiscard(list);
-                case "TYPE":
-                    return handleType(list);
-                case "XADD":
-                    return StreamHandler.handleXAdd(list);
-                case "XRANGE":
-                    return StreamHandler.handleXRange(list);
-                case "XREAD":
-                    return StreamHandler.handleXRead(list);
-                case "INFO":
-                    return handleInfo(list);
-                case "REPLCONF":
-                    return handleReplConf(list);
-                case "PSYNC":
-                    pSyncHandler(list, out);
-                    break;
-                default:
-                    return "+PONG\r\n";
-            }
-        }
-        return null;
-    }
-
-    private void pSyncHandler(List<Object> list, PrintWriter out) {
+public class ClientHandler {
+    public static void pSyncHandler(List<Object> list, PrintWriter out, Socket clientSocket) {
         try {
             StringBuilder response = new StringBuilder("+FULLRESYNC ").append(ReplicationConfig.getMasterReplicationId()).append(" ").append(ReplicationConfig.getMasterOffset()).append("\r\n");
             out.write(response.toString());
             out.flush();
-            transferRDB(out);
+            transferRDB(out, clientSocket);
+            ReplicationConfig.addSlaveConnection(clientSocket);
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
 
-    private void transferRDB(PrintWriter out) {
+    public static void transferRDB(PrintWriter out, Socket clientSocket) {
         try {
             String emptyRDB = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
             byte[] contents = Base64.getDecoder().decode(emptyRDB);
             StringBuilder output = new StringBuilder("$").append(contents.length).append("\r\n");
             out.write(output.toString());
             out.flush();
-            this.clientSocket.getOutputStream().write(contents);
-            this.clientSocket.getOutputStream().flush();
+            clientSocket.getOutputStream().write(contents);
+            clientSocket.getOutputStream().flush();
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
 
-    private String handleReplConf(List<Object> list) {
+    public static String handleReplConf(List<Object> list) {
         try {
             String command = (String) list.get(1);
 
@@ -150,7 +61,7 @@ public class ClientHandler implements Runnable {
         return null;
     }
 
-    private String handleInfo(List<Object> list) {
+    public static String handleInfo(List<Object> list) {
         try {
             String command = (String) list.get(1);
             if (command.equalsIgnoreCase("replication")) {
@@ -168,7 +79,7 @@ public class ClientHandler implements Runnable {
         return null;
     }
 
-    private String handleType(List<Object> list) {
+    public static String handleType(List<Object> list) {
         try {
             String key = (String) list.get(1);
             if (RedisKeys.containsKey(key)) {
@@ -181,50 +92,7 @@ public class ClientHandler implements Runnable {
         return null;
     }
 
-    private String handleDiscard(List<Object> list) {
-        try {
-            if (!this.isMulti) {
-                return RespConvertor.toErrorString("DISCARD without MULTI");
-            }
-            this.isMulti = false;
-            this.multiQueue = null;
-            return "+OK\r\n";
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        return null;
-    }
-
-    private String handleExec(List<Object> list, PrintWriter out) {
-        try {
-            if (!this.isMulti) {
-                return RespConvertor.toErrorString("EXEC without MULTI");
-            }
-            this.isMulti = false;
-            List<String> responseList = new ArrayList<>();
-            while (!this.multiQueue.isEmpty()) {
-                Object object = this.multiQueue.poll();
-                responseList.add(handleParsedRESPObject(object, out));
-            }
-            return RespConvertor.toRESPArray(responseList, false);
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        return null;
-    }
-
-    private String handleMulti(List<Object> list) {
-        try {
-            this.isMulti = true;
-            multiQueue = new ArrayDeque<>();
-            return "+OK\r\n";
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        return null;
-    }
-
-    private String handleIncrement(List<Object> list) {
+    public static String handleIncrement(List<Object> list) {
         try {
             String key = (String) list.get(1);
             RedisMap.Value value = RedisMap.getValue(key);
@@ -251,7 +119,7 @@ public class ClientHandler implements Runnable {
         return null;
     }
 
-    private String handleKeys(List<Object> list) {
+    public static String handleKeys(List<Object> list) {
         try {
             String pattern = (String) list.get(1);
             String bulkArrayResponse = "";
@@ -265,7 +133,7 @@ public class ClientHandler implements Runnable {
         return null;
     }
 
-    private String handleConfig(List<Object> list) {
+    public static String handleConfig(List<Object> list) {
         try {
             if (RDBConfig.isRDBEnabled) {
                 String configParam = (String) list.get(2);
@@ -283,7 +151,7 @@ public class ClientHandler implements Runnable {
         return null;
     }
 
-    private String handleGet(List<Object> list) {
+    public static String handleGet(List<Object> list) {
         try {
             String key = (String) list.get(1);
             RedisMap.Value value = RedisMap.getValue(key);
@@ -298,7 +166,7 @@ public class ClientHandler implements Runnable {
         return null;
     }
 
-    private String handleEcho(List<Object> list) {
+    public static String handleEcho(List<Object> list) {
         if (list.size() > 1) {
             String text = (String) list.get(1);
             return RespConvertor.toBulkString(text);
@@ -306,7 +174,7 @@ public class ClientHandler implements Runnable {
         return "";
     }
 
-    private String handleSet(List<Object> list) throws IllegalArgumentException {
+    public static String handleSet(List<Object> list) throws IllegalArgumentException {
         try {
             if (list.size() > 2) {
                 String key = (String) list.get(1);
@@ -320,6 +188,7 @@ public class ClientHandler implements Runnable {
                 RedisMap.Value value = new RedisMap.Value(val, canExpire, (Timestamp.valueOf(LocalDateTime.now()).getTime()) + expiry);
                 RedisMap.setValue(key, value);
                 RedisKeys.addKey(key, "string");
+                propagateToSlave(list);
                 return "+OK\r\n";
             } else {
                 throw new IllegalArgumentException();
@@ -329,4 +198,21 @@ public class ClientHandler implements Runnable {
         }
         return null;
     }
+
+    public static void propagateToSlave(List<Object> command){
+        List<String> commandString = command.stream()
+                .map(Object::toString)
+                .collect(Collectors.toList());
+        Set<Socket> slaveSockets = ReplicationConfig.getSlaveConnections();
+        for(Socket slaveSocket : slaveSockets){
+            try{
+                PrintWriter out = new PrintWriter(slaveSocket.getOutputStream(), true);
+                out.write(RespConvertor.toRESPArray(commandString, true));
+                out.flush();
+            }catch(Exception e){
+                System.out.println(e.getMessage());
+            }
+        }
+    }
+
 }

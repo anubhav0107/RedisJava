@@ -51,7 +51,7 @@ public class Main {
             // Wait for connection from client.
             while (true) {
                 clientSocket = serverSocket.accept();
-                ClientHandler clientHandler = new ClientHandler(clientSocket);
+                ClientThread clientHandler = new ClientThread(clientSocket);
                 executorService.execute(clientHandler);
             }
         } catch (IOException e) {

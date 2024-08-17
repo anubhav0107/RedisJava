@@ -1,8 +1,10 @@
 package config;
 
+import java.net.Socket;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class ReplicationConfig {
@@ -12,7 +14,10 @@ public class ReplicationConfig {
     private static String masterReplicationId;
     private static long masterOffset;
 
+
     private static ConcurrentSkipListMap<Integer, Set<String>> slavePorts = new ConcurrentSkipListMap<>();
+
+    private static ConcurrentHashMap.KeySetView<Socket, Boolean> slaveConnections = ConcurrentHashMap.newKeySet();
 
     private ReplicationConfig(boolean isSlave) {
         this.isSlave = isSlave;
@@ -24,6 +29,14 @@ public class ReplicationConfig {
 
     public static void addSlavePort(Integer port) {
         ReplicationConfig.slavePorts.put(port, new HashSet<>());
+    }
+
+    public static void addSlaveConnection(Socket slaveSocket){
+        slaveConnections.add(slaveSocket);
+    }
+
+    public static Set<Socket> getSlaveConnections(){
+        return slaveConnections;
     }
 
     public static String getMasterReplicationId() {

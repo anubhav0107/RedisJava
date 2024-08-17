@@ -1,7 +1,11 @@
 package replication;
 
 import config.ReplicationConfig;
+import handler.ClientHandler;
 import resp.RespConvertor;
+import resp.RespParser;
+import stramhandlers.StreamHandler;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -37,11 +41,48 @@ public class Replication {
                 out.flush();
                 line = in.readLine();
 
+                new Thread(() -> listenToSocket(socket, in)).start();
             } catch (Exception e) {
                 System.out.println(e.getMessage());
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
+        }
+    }
+
+    private static void listenToSocket(Socket socket, BufferedReader in){
+        try{
+            RespParser rp = new RespParser(in);
+            while (!socket.isClosed()) {
+                Object object = rp.parse();
+                if (object == null) {
+                    continue;
+                }
+                handleParsedRESPObject(object);
+            }
+        } catch(Exception e){
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private static void handleParsedRESPObject(Object object) {
+        if (object instanceof List) {
+            List<Object> list = (List<Object>) object;
+            String command = (String) list.get(0);
+
+            switch (command.toUpperCase()) {
+                case "SET":
+                    ClientHandler.handleSet(list);
+                    break;
+                case "INCR":
+                    ClientHandler.handleIncrement(list);
+                    break;
+                case "XADD":
+                    StreamHandler.handleXAdd(list);
+                    break;
+                default:
+                    System.out.println("+PONG\r\n");
+            }
         }
     }
 }
