@@ -12,7 +12,6 @@ public class Replication {
     public static void handshake(int port) {
         try {
             Socket socket = new Socket(ReplicationConfig.getMasterIP(), Integer.parseInt(ReplicationConfig.getMasterPort()));
-            socket.setSoTimeout(500);
             StringBuilder response = new StringBuilder();
             try (PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
@@ -41,7 +40,6 @@ public class Replication {
             } catch (Exception e) {
                 System.out.println(e.getMessage());
             }
-            socket.close();
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }

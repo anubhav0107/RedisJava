@@ -6,17 +6,12 @@ import resp.RespConvertor;
 import resp.RespParser;
 import stramhandlers.StreamHandler;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import javax.swing.text.StringContent;
+import java.io.*;
 import java.net.Socket;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
 public class ClientHandler implements Runnable {
 
@@ -44,7 +39,7 @@ public class ClientHandler implements Runnable {
                 if (object == null) {
                     continue;
                 }
-                String output = handleParsedRESPObject(object);
+                String output = handleParsedRESPObject(object, out);
                 if (output != null) {
                     out.write(output);
                     out.flush();
@@ -62,7 +57,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private String handleParsedRESPObject(Object object) {
+    private String handleParsedRESPObject(Object object, PrintWriter out) {
         if (object instanceof List) {
             List<Object> list = (List<Object>) object;
             String command = (String) list.get(0);
@@ -86,7 +81,7 @@ public class ClientHandler implements Runnable {
                 case "MULTI":
                     return handleMulti(list);
                 case "EXEC":
-                    return handleExec(list);
+                    return handleExec(list, out);
                 case "DISCARD":
                     return handleDiscard(list);
                 case "TYPE":
@@ -102,7 +97,8 @@ public class ClientHandler implements Runnable {
                 case "REPLCONF":
                     return handleReplConf(list);
                 case "PSYNC":
-                    return pSyncHandler(list);
+                    pSyncHandler(list, out);
+                    break;
                 default:
                     return "+PONG\r\n";
             }
@@ -110,14 +106,29 @@ public class ClientHandler implements Runnable {
         return null;
     }
 
-    private String pSyncHandler(List<Object> list) {
-        try{
+    private void pSyncHandler(List<Object> list, PrintWriter out) {
+        try {
             StringBuilder response = new StringBuilder("+FULLRESYNC ").append(ReplicationConfig.getMasterReplicationId()).append(" ").append(ReplicationConfig.getMasterOffset()).append("\r\n");
-            return response.toString();
-        }catch(Exception e){
+            out.write(response.toString());
+            out.flush();
+            transferRDB(out);
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-        return null;
+    }
+
+    private void transferRDB(PrintWriter out) {
+        try {
+            String emptyRDB = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
+            byte[] contents = Base64.getDecoder().decode(emptyRDB);
+            StringBuilder output = new StringBuilder("$").append(contents.length).append("\r\n");
+            out.write(output.toString());
+            out.flush();
+            this.clientSocket.getOutputStream().write(contents);
+            this.clientSocket.getOutputStream().flush();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     private String handleReplConf(List<Object> list) {
@@ -128,7 +139,7 @@ public class ClientHandler implements Runnable {
                 String slavePort = (String) list.get(2);
                 ReplicationConfig.addSlavePort(Integer.parseInt(slavePort));
             } else if (command.equalsIgnoreCase("capa")) {
-                for(int i = 2; i < list.size(); i++){
+                for (int i = 2; i < list.size(); i++) {
                     ReplicationConfig.addCapabilitiesToSlave((String) list.get(i));
                 }
             }
@@ -184,7 +195,7 @@ public class ClientHandler implements Runnable {
         return null;
     }
 
-    private String handleExec(List<Object> list) {
+    private String handleExec(List<Object> list, PrintWriter out) {
         try {
             if (!this.isMulti) {
                 return RespConvertor.toErrorString("EXEC without MULTI");
@@ -193,7 +204,7 @@ public class ClientHandler implements Runnable {
             List<String> responseList = new ArrayList<>();
             while (!this.multiQueue.isEmpty()) {
                 Object object = this.multiQueue.poll();
-                responseList.add(handleParsedRESPObject(object));
+                responseList.add(handleParsedRESPObject(object, out));
             }
             return RespConvertor.toRESPArray(responseList, false);
         } catch (Exception e) {
