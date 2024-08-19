@@ -57,7 +57,7 @@ public class Replication {
                 if (object == null) {
                     continue;
                 }
-                System.out.println("Object Not Null");
+                System.out.println("Object Not Null: ");
                 handleParsedRESPObject(object);
             }
         } catch (Exception e) {

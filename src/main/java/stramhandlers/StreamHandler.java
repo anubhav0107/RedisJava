@@ -208,7 +208,6 @@ public class StreamHandler {
             for (String streamKey : streamMap.keySet()) {
                 StreamThreadHandler.registerStreamLatch(streamKey, latch);
             }
-
             if (blocking) {
                 // Wait for new data with timeout
                 if(blockTimeout == 0){
@@ -263,7 +262,6 @@ public class StreamHandler {
                 if (!startEntries.contains("-")) {
                     startEntries += "-0";
                 }
-            }
             streamMap.put((String) list.get(i), startEntries);
         }
         return streamMap;
