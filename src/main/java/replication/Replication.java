@@ -65,7 +65,7 @@ public class Replication {
         }
     }
 
-    private static void handleParsedRESPObject(Object object) {
+    private static String handleParsedRESPObject(Object object) {
         if (object instanceof List) {
             List<Object> list = (List<Object>) object;
             String command = (String) list.get(0);
@@ -80,9 +80,21 @@ public class Replication {
                 case "XADD":
                     StreamHandler.handleXAdd(list);
                     break;
+                case "REPLCONF":
+                    return handleReplConfAck(list);
                 default:
                     System.out.println("+PONG\r\n");
             }
         }
+        return null;
+    }
+
+    private static String handleReplConfAck(List<Object> list) {
+        try {
+            return RespConvertor.toRESPArray(List.of("REPLCONF", "ACK", "0"), true);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return null;
     }
 }
