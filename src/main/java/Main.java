@@ -43,7 +43,7 @@ public class Main {
         Socket clientSocket = null;
 
         try {
-            ExecutorService executorService = Executors.newFixedThreadPool(10);
+            ExecutorService executorService = Executors.newFixedThreadPool(200);
             serverSocket = new ServerSocket(port);
             // Since the tester restarts your program quite often, setting SO_REUSEADDR
             // ensures that we don't run into 'Address already in use' errors
@@ -51,7 +51,7 @@ public class Main {
             // Wait for connection from client.
             while (true) {
                 clientSocket = serverSocket.accept();
-                ClientHandler clientHandler = new ClientHandler(clientSocket);
+                ClientThread clientHandler = new ClientThread(clientSocket);
                 executorService.execute(clientHandler);
             }
         } catch (IOException e) {
