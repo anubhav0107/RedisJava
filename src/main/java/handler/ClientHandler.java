@@ -6,16 +6,25 @@ import redisdatastructures.RedisKeys;
 import redisdatastructures.RedisMap;
 import resp.RespConvertor;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class ClientHandler {
+
+    private static CountDownLatch latch;
+    private static int numReplicasResponded = -1;
+
     public static void pSyncHandler(List<Object> list, PrintWriter out, Socket clientSocket) {
         try {
             StringBuilder response = new StringBuilder("+FULLRESYNC ").append(ReplicationConfig.getMasterReplicationId()).append(" ").append(ReplicationConfig.getMasterOffset()).append("\r\n");
@@ -52,7 +61,7 @@ public class ClientHandler {
         }
     }
 
-    public static String handleReplConf(List<Object> list) {
+    public static String handleReplConf(List<Object> list, Socket socket) {
         try {
             String command = (String) list.get(1);
             System.out.println(command);
@@ -63,6 +72,12 @@ public class ClientHandler {
                 for (int i = 2; i < list.size(); i++) {
                     ReplicationConfig.addCapabilitiesToSlave((String) list.get(i));
                 }
+            } else if(command.equalsIgnoreCase("ACK")){
+                int totalBytesProcessed = Integer.parseInt((String) list.get(2));
+                ReplicationConfig.updateSlaveConnection(socket, totalBytesProcessed);
+                latch.countDown();
+                numReplicasResponded++;
+                return null;
             }
             return "+OK\r\n";
         } catch (Exception e) {
@@ -213,11 +228,14 @@ public class ClientHandler {
         List<String> commandString = command.stream()
                 .map(Object::toString)
                 .collect(Collectors.toList());
-        Set<Socket> slaveSockets = ReplicationConfig.getSlaveConnections();
-        for (Socket slaveSocket : slaveSockets) {
+        Map<Socket, Integer> slaveSockets = ReplicationConfig.getSlaveConnections();
+        numReplicasResponded = 0;
+        for (Socket slaveSocket : slaveSockets.keySet()) {
             try {
                 PrintWriter out = new PrintWriter(slaveSocket.getOutputStream(), true);
-                out.write(RespConvertor.toRESPArray(commandString, true));
+                BufferedReader in = new BufferedReader(new InputStreamReader(slaveSocket.getInputStream()));
+                String respCommand = RespConvertor.toRESPArray(commandString, true);
+                out.write(respCommand);
                 out.flush();
             } catch (Exception e) {
                 System.out.println(e.getMessage());
@@ -226,9 +244,28 @@ public class ClientHandler {
     }
 
     public static String handleWait(List<Object> list) {
-        try{
-            return RespConvertor.toIntegerString(ReplicationConfig.countReplicas());
-        } catch(Exception e){
+        try {
+            int waitTime = Integer.parseInt((String) list.get(2));
+            int countDown = Integer.parseInt((String) list.get(1));
+            Map<Socket, Integer> slaveSockets = ReplicationConfig.getSlaveConnections();
+            for (Socket slaveSocket : slaveSockets.keySet()) {
+                try {
+                    PrintWriter out = new PrintWriter(slaveSocket.getOutputStream(), true);
+                    BufferedReader in = new BufferedReader(new InputStreamReader(slaveSocket.getInputStream()));
+
+                    String getAckCommand = RespConvertor.toRESPArray(List.of("REPLCONF", "GETACK", "*"), true);
+                    out.write(getAckCommand);
+                    out.flush();
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                }
+            }
+            latch = new CountDownLatch(countDown);
+            latch.await(waitTime, TimeUnit.MILLISECONDS);
+
+            numReplicasResponded = numReplicasResponded == -1 ? ReplicationConfig.countReplicas() : numReplicasResponded;
+            return RespConvertor.toIntegerString(numReplicasResponded);
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         return null;

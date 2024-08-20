@@ -95,7 +95,7 @@ public class ClientThread implements Runnable {
                 case "INFO":
                     return ClientHandler.handleInfo(list);
                 case "REPLCONF":
-                    return ClientHandler.handleReplConf(list);
+                    return ClientHandler.handleReplConf(list, this.clientSocket);
                 case "PSYNC":
                     ClientHandler.pSyncHandler(list, out, this.clientSocket);
                     break;
