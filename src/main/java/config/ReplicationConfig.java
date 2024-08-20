@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class ReplicationConfig {
@@ -23,20 +24,20 @@ public class ReplicationConfig {
         this.isSlave = isSlave;
     }
 
-    public static void addCapabilitiesToSlave(String capability) {
-        slavePorts.get(slavePorts.lastKey()).add(capability);
-    }
-
-    public static void addSlavePort(Integer port) {
-        ReplicationConfig.slavePorts.put(port, new HashSet<>());
-    }
-
     public static void addSlaveConnection(Socket slaveSocket){
         slaveConnections.add(slaveSocket);
     }
 
     public static Set<Socket> getSlaveConnections(){
         return slaveConnections;
+    }
+
+    public static void addCapabilitiesToSlave(String capability){
+        slavePorts.get(slavePorts.lastKey()).add(capability);
+    }
+
+    public static void addSlavePort(Integer port) {
+        ReplicationConfig.slavePorts.put(port, new HashSet<>());
     }
 
     public static String getMasterReplicationId() {
