@@ -40,7 +40,6 @@ public class Replication {
             out.print(pSync);
             out.flush();
             line = in.readLine();
-            System.out.println(line);
             parseRDBHandshake(in);
 
             new Thread(() -> listenToSocket(socket, in, out)).start();

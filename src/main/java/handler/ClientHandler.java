@@ -189,8 +189,6 @@ public class ClientHandler {
             if (list.size() > 2) {
                 String key = (String) list.get(1);
                 String val = (String) list.get(2);
-                System.out.println("key: " + key);
-                System.out.println("val: " + val);
                 long expiry = 0;
                 boolean canExpire = false;
                 if (list.size() > 4) {
