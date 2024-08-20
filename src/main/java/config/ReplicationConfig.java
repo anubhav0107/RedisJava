@@ -2,6 +2,7 @@ package config;
 
 import java.net.Socket;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,17 +19,29 @@ public class ReplicationConfig {
 
     private static ConcurrentSkipListMap<Integer, Set<String>> slavePorts = new ConcurrentSkipListMap<>();
 
-    private static ConcurrentHashMap.KeySetView<Socket, Boolean> slaveConnections = ConcurrentHashMap.newKeySet();
+    private static ConcurrentHashMap<Socket, Integer> slaveConnections = new ConcurrentHashMap<>();
 
     private ReplicationConfig(boolean isSlave) {
         this.isSlave = isSlave;
     }
 
     public static void addSlaveConnection(Socket slaveSocket){
-        slaveConnections.add(slaveSocket);
+        slaveConnections.put(slaveSocket, 0);
     }
 
-    public static Set<Socket> getSlaveConnections(){
+    public static void updateSlaveConnection(Socket slaveSocket, Integer bytesProcessed){
+        slaveConnections.replace(slaveSocket, bytesProcessed);
+    }
+
+    public static Integer bytesProcessedBySlaveConnections(){
+        int bytesProc = 0;
+        for(Map.Entry<Socket, Integer> entry : slaveConnections.entrySet()){
+            bytesProc += entry.getValue();
+        }
+        return bytesProc;
+    }
+
+    public static Map<Socket, Integer> getSlaveConnections(){
         return slaveConnections;
     }
 
