@@ -28,12 +28,13 @@ public class ClientHandler {
         }
     }
 
-    public static void sendGetAckToReplica(Socket clientSocket, PrintWriter out){
+    public static void sendGetAckToReplica(Socket clientSocket, PrintWriter out) {
+
         try {
             String getAckCommand = RespConvertor.toRESPArray(List.of("REPLCONF", "GETACK", "*"), true);
             out.write(getAckCommand);
             out.flush();
-        } catch (Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
@@ -55,7 +56,7 @@ public class ClientHandler {
     public static String handleReplConf(List<Object> list) {
         try {
             String command = (String) list.get(1);
-
+            System.out.println(command);
             if (command.equalsIgnoreCase("listening-port")) {
                 String slavePort = (String) list.get(2);
                 ReplicationConfig.addSlavePort(Integer.parseInt(slavePort));
@@ -214,20 +215,28 @@ public class ClientHandler {
         return null;
     }
 
-    public static void propagateToSlave(List<Object> command){
+    public static void propagateToSlave(List<Object> command) {
         List<String> commandString = command.stream()
                 .map(Object::toString)
                 .collect(Collectors.toList());
         Set<Socket> slaveSockets = ReplicationConfig.getSlaveConnections();
-        for(Socket slaveSocket : slaveSockets){
-            try{
+        for (Socket slaveSocket : slaveSockets) {
+            try {
                 PrintWriter out = new PrintWriter(slaveSocket.getOutputStream(), true);
                 out.write(RespConvertor.toRESPArray(commandString, true));
                 out.flush();
-            }catch(Exception e){
+            } catch (Exception e) {
                 System.out.println(e.getMessage());
             }
         }
     }
 
+    public static String handleWait(List<Object> list) {
+        try{
+            return RespConvertor.toIntegerString(ReplicationConfig.countReplicas());
+        } catch(Exception e){
+            System.out.println(e.getMessage());
+        }
+        return null;
+    }
 }

@@ -35,7 +35,7 @@ public class RespParser {
         }
     }
 
-    private List<Object> parseArray() throws IOException {
+    public List<Object> parseArray() throws IOException {
         long length = Long.parseLong(parseInteger());
         if (length == -1) {
             return null;
@@ -47,7 +47,7 @@ public class RespParser {
         return array;
     }
 
-    private String parseBulkString() throws IOException {
+    public String parseBulkString() throws IOException {
         long length = Long.parseLong(parseInteger());
         if (length == -1) {
             return null;
@@ -59,7 +59,7 @@ public class RespParser {
         return new String(bytes);
     }
 
-    private String parseInteger() throws IOException {
+    public String parseInteger() throws IOException {
         StringBuilder sb = new StringBuilder();
         int c;
         while ((c = in.read()) != -1 && c != '\r') {
@@ -69,11 +69,11 @@ public class RespParser {
         return sb.toString();
     }
 
-    private String parseError() throws IOException {
+    public String parseError() throws IOException {
         return parseSimpleString();
     }
 
-    private String parseSimpleString() throws IOException {
+    public String parseSimpleString() throws IOException {
         StringBuilder sb = new StringBuilder();
         int c;
         while ((c = in.read()) != -1 && c != '\r') {

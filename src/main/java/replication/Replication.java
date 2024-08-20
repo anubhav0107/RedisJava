@@ -11,8 +11,11 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Replication {
+    private static long bytesReadByReplica = 0;
+
     public static void handshake(int port) {
         try {
             Socket socket = new Socket(ReplicationConfig.getMasterIP(), Integer.parseInt(ReplicationConfig.getMasterPort()));
@@ -40,16 +43,32 @@ public class Replication {
             out.print(pSync);
             out.flush();
             line = in.readLine();
+            parseRDBHandshake(in);
 
-            BufferedReader in2 = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            new Thread(() -> listenToSocket(socket, in2)).start();
+            new Thread(() -> listenToSocket(socket, in, out)).start();
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
 
-    private static void listenToSocket(Socket socket, BufferedReader in) {
+    private static void parseRDBHandshake(BufferedReader in) {
+        try{
+            RespParser rp = new RespParser(in);
+            int firstByte = in.read();
+            if(firstByte == '$'){
+                String len = rp.parseInteger();
+                char[] rdb = new char[Integer.parseInt(len) - 1];
+                in.read(rdb);
+
+            }
+
+        } catch (Exception e){
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private static void listenToSocket(Socket socket, BufferedReader in, PrintWriter out) {
         try {
             RespParser rp = new RespParser(in);
             while (!socket.isClosed()) {
@@ -57,8 +76,11 @@ public class Replication {
                 if (object == null) {
                     continue;
                 }
-                System.out.println("Object Not Null: ");
-                handleParsedRESPObject(object);
+                String output = handleParsedRESPObject(object);
+                if (output != null) {
+                    out.write(output);
+                    out.flush();
+                }
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -68,30 +90,39 @@ public class Replication {
     private static String handleParsedRESPObject(Object object) {
         if (object instanceof List) {
             List<Object> list = (List<Object>) object;
+            List<String> listString = list.stream()
+                    .map(Object::toString)
+                    .collect(Collectors.toList());
             String command = (String) list.get(0);
-            System.out.println("Command: " + command);
+
             switch (command.toUpperCase()) {
                 case "SET":
                     ClientHandler.handleSet(list);
+                    bytesReadByReplica += (RespConvertor.toRESPArray(listString, true)).length();
                     break;
                 case "INCR":
                     ClientHandler.handleIncrement(list);
+                    bytesReadByReplica += (RespConvertor.toRESPArray(listString, true)).length();
                     break;
                 case "XADD":
                     StreamHandler.handleXAdd(list);
+                    bytesReadByReplica += (RespConvertor.toRESPArray(listString, true)).length();
                     break;
                 case "REPLCONF":
-                    return handleReplConfAck(list);
+                    return handleReplConfAck(listString);
                 default:
+                    bytesReadByReplica += (RespConvertor.toRESPArray(listString, true)).length();
                     System.out.println("+PONG\r\n");
             }
         }
         return null;
     }
 
-    private static String handleReplConfAck(List<Object> list) {
+    private static String handleReplConfAck(List<String> list) {
         try {
-            return RespConvertor.toRESPArray(List.of("REPLCONF", "ACK", "0"), true);
+            String ack = RespConvertor.toRESPArray(List.of("REPLCONF", "ACK", String.valueOf(bytesReadByReplica)), true);
+            bytesReadByReplica += (RespConvertor.toRESPArray(list, true)).length();
+            return ack;
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }

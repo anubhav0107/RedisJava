@@ -100,6 +100,8 @@ public class ClientThread implements Runnable {
                     ClientHandler.pSyncHandler(list, out, this.clientSocket);
                     ClientHandler.sendGetAckToReplica(this.clientSocket, out);
                     break;
+                case "WAIT":
+                    return ClientHandler.handleWait(list);
                 default:
                     return "+PONG\r\n";
             }
