@@ -28,6 +28,16 @@ public class ClientHandler {
         }
     }
 
+    public static void sendGetAckToReplica(Socket clientSocket, PrintWriter out) {
+        try {
+            String getAckCommand = RespConvertor.toRESPArray(List.of("REPLCONF", "GETACK", "*"), true);
+            out.write(getAckCommand);
+            out.flush();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
     public static void transferRDB(PrintWriter out, Socket clientSocket) {
         try {
             String emptyRDB = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
@@ -45,7 +55,7 @@ public class ClientHandler {
     public static String handleReplConf(List<Object> list) {
         try {
             String command = (String) list.get(1);
-
+            System.out.println(command);
             if (command.equalsIgnoreCase("listening-port")) {
                 String slavePort = (String) list.get(2);
                 ReplicationConfig.addSlavePort(Integer.parseInt(slavePort));
@@ -179,6 +189,8 @@ public class ClientHandler {
             if (list.size() > 2) {
                 String key = (String) list.get(1);
                 String val = (String) list.get(2);
+                System.out.println("key: " + key);
+                System.out.println("val: " + val);
                 long expiry = 0;
                 boolean canExpire = false;
                 if (list.size() > 4) {
@@ -199,17 +211,17 @@ public class ClientHandler {
         return null;
     }
 
-    public static void propagateToSlave(List<Object> command){
+    public static void propagateToSlave(List<Object> command) {
         List<String> commandString = command.stream()
                 .map(Object::toString)
                 .collect(Collectors.toList());
         Set<Socket> slaveSockets = ReplicationConfig.getSlaveConnections();
-        for(Socket slaveSocket : slaveSockets){
-            try{
+        for (Socket slaveSocket : slaveSockets) {
+            try {
                 PrintWriter out = new PrintWriter(slaveSocket.getOutputStream(), true);
                 out.write(RespConvertor.toRESPArray(commandString, true));
                 out.flush();
-            }catch(Exception e){
+            } catch (Exception e) {
                 System.out.println(e.getMessage());
             }
         }

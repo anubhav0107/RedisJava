@@ -40,16 +40,34 @@ public class Replication {
             out.print(pSync);
             out.flush();
             line = in.readLine();
+            System.out.println(line);
+            parseRDBHandshake(in);
 
-            BufferedReader in2 = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            new Thread(() -> listenToSocket(socket, in2)).start();
+            new Thread(() -> listenToSocket(socket, in, out)).start();
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
 
-    private static void listenToSocket(Socket socket, BufferedReader in) {
+    private static void parseRDBHandshake(BufferedReader in) {
+        try{
+            RespParser rp = new RespParser(in);
+            int firstByte = in.read();
+            if(firstByte == '$'){
+                String len = rp.parseInteger();
+                System.out.println(len);
+                char[] rdb = new char[Integer.parseInt(len) - 1];
+                in.read(rdb);
+                System.out.println(rdb);
+            }
+
+        } catch (Exception e){
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private static void listenToSocket(Socket socket, BufferedReader in, PrintWriter out) {
         try {
             RespParser rp = new RespParser(in);
             while (!socket.isClosed()) {
@@ -57,15 +75,18 @@ public class Replication {
                 if (object == null) {
                     continue;
                 }
-                System.out.println("Object Not Null: ");
-                handleParsedRESPObject(object);
+                String output = handleParsedRESPObject(object);
+                if (output != null) {
+                    out.write(output);
+                    out.flush();
+                }
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
 
-    private static void handleParsedRESPObject(Object object) {
+    private static String handleParsedRESPObject(Object object) {
         if (object instanceof List) {
             List<Object> list = (List<Object>) object;
             String command = (String) list.get(0);
@@ -80,9 +101,21 @@ public class Replication {
                 case "XADD":
                     StreamHandler.handleXAdd(list);
                     break;
+                case "REPLCONF":
+                    return handleReplConfAck(list);
                 default:
                     System.out.println("+PONG\r\n");
             }
         }
+        return null;
+    }
+
+    private static String handleReplConfAck(List<Object> list) {
+        try {
+            return RespConvertor.toRESPArray(List.of("REPLCONF", "ACK", "0"), true);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return null;
     }
 }
