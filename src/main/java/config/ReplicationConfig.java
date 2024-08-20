@@ -91,4 +91,7 @@ public class ReplicationConfig {
         return sb.toString();
     }
 
+    public static int countReplicas(){
+        return slaveConnections.size();
+    }
 }

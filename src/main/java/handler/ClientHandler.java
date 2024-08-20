@@ -225,4 +225,12 @@ public class ClientHandler {
         }
     }
 
+    public static String handleWait(List<Object> list) {
+        try{
+            return RespConvertor.toIntegerString(ReplicationConfig.countReplicas());
+        } catch(Exception e){
+            System.out.println(e.getMessage());
+        }
+        return null;
+    }
 }
