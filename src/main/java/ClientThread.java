@@ -99,6 +99,8 @@ public class ClientThread implements Runnable {
                 case "PSYNC":
                     ClientHandler.pSyncHandler(list, out, this.clientSocket);
                     break;
+                case "WAIT":
+                    return ClientHandler.handleWait(list);
                 default:
                     return "+PONG\r\n";
             }
