@@ -28,6 +28,16 @@ public class ClientHandler {
         }
     }
 
+    public static void sendGetAckToReplica(Socket clientSocket, PrintWriter out){
+        try {
+            String getAckCommand = RespConvertor.toRESPArray(List.of("REPLCONF", "GETACK", "*"), true);
+            out.write(getAckCommand);
+            out.flush();
+        } catch (Exception e){
+            System.out.println(e.getMessage());
+        }
+    }
+
     public static void transferRDB(PrintWriter out, Socket clientSocket) {
         try {
             String emptyRDB = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
@@ -53,6 +63,9 @@ public class ClientHandler {
                 for (int i = 2; i < list.size(); i++) {
                     ReplicationConfig.addCapabilitiesToSlave((String) list.get(i));
                 }
+            } else if (command.equalsIgnoreCase("ACK")) {
+                System.out.println("Acknowledgment received");
+                return  "";
             }
             return "+OK\r\n";
         } catch (Exception e) {
