@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class ReplicationConfig {
@@ -22,14 +23,6 @@ public class ReplicationConfig {
 
     private ReplicationConfig(boolean isSlave) {
         this.isSlave = isSlave;
-    }
-
-    public static void addCapabilitiesToSlave(String capability) {
-        slavePorts.get(slavePorts.lastKey()).add(capability);
-    }
-
-    public static void addSlavePort(Integer port) {
-        ReplicationConfig.slavePorts.put(port, new HashSet<>());
     }
 
     public static void addSlaveConnection(Socket slaveSocket){
@@ -50,6 +43,14 @@ public class ReplicationConfig {
 
     public static Map<Socket, Integer> getSlaveConnections(){
         return slaveConnections;
+    }
+
+    public static void addCapabilitiesToSlave(String capability){
+        slavePorts.get(slavePorts.lastKey()).add(capability);
+    }
+
+    public static void addSlavePort(Integer port) {
+        ReplicationConfig.slavePorts.put(port, new HashSet<>());
     }
 
     public static String getMasterReplicationId() {

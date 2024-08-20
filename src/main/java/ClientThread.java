@@ -98,6 +98,7 @@ public class ClientThread implements Runnable {
                     return ClientHandler.handleReplConf(list, this.clientSocket);
                 case "PSYNC":
                     ClientHandler.pSyncHandler(list, out, this.clientSocket);
+                    ClientHandler.sendGetAckToReplica(this.clientSocket, out);
                     break;
                 case "WAIT":
                     return ClientHandler.handleWait(list);
